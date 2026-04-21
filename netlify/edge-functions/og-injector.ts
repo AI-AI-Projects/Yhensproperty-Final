@@ -23,6 +23,9 @@ const BOT_UA_FRAGMENTS = [
   "bufferbot",
   "pinterest",
   "outbrain",
+  "grok", "xai", "perplexitybot", "claudebot", "anthropic-ai",
+  "chatgpt-user", "gptbot", "cohere-ai", "semrushbot",
+  "ahrefsbot", "mj12bot", "dotbot",
 ];
 
 function isSocialBot(ua: string): boolean {

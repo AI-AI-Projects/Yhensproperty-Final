@@ -2,6 +2,10 @@
   path = "/property/*"
   function = "og-injector"
 
+[[edge_functions]]
+  path = "/guides/*"
+  function = "guide-meta-injector"
+
 [[redirects]]
   from = "/sitemap.xml"
   to = "https://ivvgyrmyjfftqteaiyuf.supabase.co/functions/v1/sitemap"
