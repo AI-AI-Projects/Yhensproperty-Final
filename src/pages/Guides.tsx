@@ -64,13 +64,23 @@ export const guides = [
     readTime: '12 min',
     highlight: true,
   },
+  {
+    slug: 'union-village-quezon-city',
+    icon: 'location_city',
+    badge: 'Neighbourhood Guide',
+    title: 'Union Village, Quezon City: Complete Guide for Families, OFW Investors & Professionals',
+    seoPhrase: 'Is Union Village QC good for families or investment? Townhouse near UP Diliman 2026.',
+    description: 'Everything you need to know about living and investing in Union Village, QC — landmarks, schools, transport links, property prices, and rental demand near UP Diliman, Ateneo, and Katipunan.',
+    readTime: '11 min',
+    highlight: false,
+  },
 ];
 
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "CollectionPage",
   "name": "Investor Guides — Philippine Real Estate for International & Foreign Investors 2026",
-  "description": "A knowledge hub of 6 expert guides covering the buyer's guide with all fees and taxes, property ownership law, the 99-year lease, rental yield comparisons, retirement visas, and selling strategies for investors in the Philippines.",
+  "description": "A knowledge hub of 7 expert guides covering the buyer's guide with all fees and taxes, property ownership law, the 99-year lease, rental yield comparisons, retirement visas, selling strategies, and neighbourhood guides for investors in the Philippines.",
   "publisher": { "@type": "Organization", "name": siteConfig.officialName, "url": "https://yhensproperty.com" },
   "hasPart": guides.map(g => ({
     "@type": "Article",
