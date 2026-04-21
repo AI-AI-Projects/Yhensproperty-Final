@@ -105,6 +105,54 @@ const faqSchema = {
         "@type": "Answer",
         "text": "BGC has one of the highest concentrations of quality restaurants in the Philippines. The Grid Food Market at Power Plant-adjacent is a curated food hall with multiple restaurant concepts. Bonifacio High Street and Serendra both offer al fresco dining with international cuisine. Popular areas include Burgos Circle for nightlife and Uptown Bonifacio for premium dining."
       }
+    },
+    {
+      "@type": "Question",
+      "name": "Is BGC a good place to live in 2026?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — BGC consistently ranks as the most liveable neighbourhood in Metro Manila. Flood-free streets, walkable access to restaurants, offices, gyms, and hospitals, a genuine international community, and continued infrastructure development in Uptown Bonifacio and McKinley West make 2026 one of the strongest years for BGC quality of life."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does it cost to live in BGC per month?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Budget roughly ₱60,000–₱100,000/month for a comfortable lifestyle in a 1-bedroom condo — covering rent (₱35,000–₱60,000), daily meals, utilities, gym, and transport. Ultra-premium living in a 3BR can exceed ₱250,000/month. BGC is one of Metro Manila's most expensive neighbourhoods, but the infrastructure justifies it for most expats and high-income professionals."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How safe is BGC at night?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "BGC is one of the safest areas in Metro Manila at night. The area is well-lit with visible security presence, CCTV coverage, and a compact layout that keeps foot traffic high into the late evening. Burgos Circle and High Street remain active until midnight or later most nights."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How is commuting from BGC to Makati or Ortigas?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "BGC to Makati CBD takes 10–25 minutes by car or Grab off-peak; Ortigas is 20–40 minutes via C5. The BGC Bus (₱13–₱15) runs frequent routes to Ayala MRT station. Peak-hour traffic (7–9am, 6–8pm) is the main challenge, but BGC's walkability means many residents avoid it entirely."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What areas or clusters within BGC are best for buying or renting?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Bonifacio High Street and Serendra are popular for lifestyle access. Uptown Bonifacio near SM Aura is the newest cluster with premium new builds. Burgos Circle appeals to young professionals for its nightlife proximity. For investment, buildings within walking distance of the BGC corporate centre command the strongest rental demand."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "BGC vs McKinley Hill vs Arca South — which is better?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "BGC is the most established and liquid — best for rental income and foreign buyers. McKinley Hill is quieter and slightly cheaper with its own Korean community and international schools. Arca South is the newest Taguig development with lower entry prices but still maturing in amenities. For maximum tenant demand and resale value, BGC leads."
+      }
     }
   ]
 };
@@ -135,6 +183,12 @@ const BGCGuide: React.FC = () => {
         whatsappMessage="Hi Yhen, I read your BGC neighbourhood guide and want to know more about properties in the area."
       >
         <div className="space-y-10 text-zinc-700 dark:text-zinc-300">
+
+          {/* Freshness badge */}
+          <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="material-icons text-sm text-primary">update</span>
+            <span>Updated April 2026 · Reviewed by Yhen, Licensed Real Estate Broker</span>
+          </div>
 
           {/* Fast Facts */}
           <section className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/20 rounded-3xl p-6 shadow-lg">
@@ -522,6 +576,12 @@ const BGCGuide: React.FC = () => {
                 { q: 'How far is BGC from NAIA airport?', a: 'Approximately 20–35 minutes via the Skyway or C5, depending on traffic. BGC is one of the closest major residential and business districts to NAIA in Metro Manila.' },
                 { q: 'Are there hospitals in BGC?', a: "Yes. St. Luke's Medical Center BGC is located within Bonifacio Global City itself — one of the Philippines' top-ranked private hospitals. The Medical City in Pasig is approximately 15 minutes away via C5." },
                 { q: 'What are the best restaurants in BGC?', a: "BGC has one of the highest concentrations of quality restaurants in the Philippines. The Grid Food Market is a curated food hall with multiple restaurant concepts. Bonifacio High Street and Serendra offer al fresco international dining. Burgos Circle is the go-to for nightlife and cocktails." },
+                { q: 'Is BGC a good place to live in 2026?', a: "Yes — BGC consistently ranks as the most liveable neighbourhood in Metro Manila. Flood-free streets, walkable access to restaurants, offices, gyms, and hospitals, a genuine international community, and continued development in Uptown Bonifacio and McKinley West make 2026 one of the strongest years for BGC quality of life." },
+                { q: 'How much does it cost to live in BGC per month?', a: "Budget roughly ₱60,000–₱100,000/month for a comfortable lifestyle in a 1-bedroom condo — covering rent (₱35,000–₱60,000), daily meals, utilities, gym, and transport. Ultra-premium living in a 3BR can exceed ₱250,000/month. BGC is one of Metro Manila's most expensive neighbourhoods, but the infrastructure justifies it for most expats and high-income professionals." },
+                { q: 'How safe is BGC at night?', a: "BGC is one of the safest areas in Metro Manila at night. The area is well-lit with visible security presence, CCTV coverage, and a compact layout that keeps foot traffic high into the late evening. Burgos Circle and High Street remain active until midnight or later most nights." },
+                { q: 'How is commuting from BGC to Makati or Ortigas?', a: "BGC to Makati CBD takes 10–25 minutes by car or Grab off-peak; Ortigas is 20–40 minutes via C5. The BGC Bus (₱13–₱15) runs frequent routes to Ayala MRT station. Peak-hour traffic (7–9am, 6–8pm) is the main challenge, but BGC's walkability means many residents avoid it entirely." },
+                { q: 'What areas or clusters within BGC are best for buying or renting?', a: "Bonifacio High Street and Serendra are popular for lifestyle access. Uptown Bonifacio near SM Aura is the newest cluster with premium new builds. Burgos Circle appeals to young professionals for nightlife proximity. For investment, buildings within walking distance of the BGC corporate centre command the strongest rental demand." },
+                { q: 'BGC vs McKinley Hill vs Arca South — which is better?', a: "BGC is the most established and liquid — best for rental income and foreign buyers. McKinley Hill is quieter and slightly cheaper with its own Korean community and international schools. Arca South is the newest Taguig development with lower entry prices but still maturing in amenities. For maximum tenant demand and resale value, BGC leads." },
               ].map((item, i) => (
                 <div key={i} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5">
                   <h3 className="font-bold text-zinc-900 dark:text-white mb-2 flex items-start gap-2 text-base">
