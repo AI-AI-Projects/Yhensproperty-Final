@@ -818,6 +818,23 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ properties, isLoading
             </div>
           </section>
 
+          {(property.address?.toLowerCase().includes('union') || property.barangay?.toLowerCase().includes('union') || property.slug?.includes('union')) && (
+            <section className="bg-gradient-to-br from-primary/10 to-transparent border-2 border-primary/20 rounded-3xl p-6">
+              <div className="flex items-start gap-4">
+                <span className="material-icons text-2xl text-primary mt-0.5">location_city</span>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">Neighbourhood Guide</p>
+                  <h3 className="font-black text-zinc-900 dark:text-white mb-2">This property is in Union Village, Quezon City</h3>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">Learn about the local schools, transport links, rental demand, and why Union Village is one of QC's most in-demand addresses for families and investors.</p>
+                  <Link to="/guides/union-village-quezon-city" className="inline-flex items-center gap-2 bg-primary text-zinc-900 font-bold text-sm px-5 py-2.5 rounded-xl hover:brightness-110 transition-all">
+                    <span className="material-icons text-sm">menu_book</span>
+                    Read the Union Village Neighbourhood Guide
+                  </Link>
+                </div>
+              </div>
+            </section>
+          )}
+
           <section>
             <h2 className="text-2xl font-black mb-4 flex items-center gap-3 dark:text-white tracking-tighter">
               <span className="w-1.5 h-8 bg-primary rounded-full"></span> Features & Amenities
