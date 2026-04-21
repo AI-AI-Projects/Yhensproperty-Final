@@ -64,6 +64,8 @@ async function generateSitemap() {
     { url: '/guides/bgc-makati-batangas-rental-yields', priority: '0.9', changefreq: 'monthly' },
     { url: '/guides/retiring-philippines-srrv', priority: '0.8', changefreq: 'monthly' },
     { url: '/guides/selling-guide-non-resident', priority: '0.8', changefreq: 'monthly' },
+    { url: '/guides/philippines-property-buyers-guide', priority: '0.9', changefreq: 'monthly' },
+    { url: '/guides/union-village-quezon-city', priority: '0.9', changefreq: 'monthly' },
     { url: '/inventory', priority: '0.8', changefreq: 'daily' },
   ];
 
