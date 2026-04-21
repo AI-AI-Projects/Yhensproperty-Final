@@ -178,9 +178,12 @@ export default async function handler(req: Request, ctx: Context): Promise<Respo
       `<meta property="og:description" content="${escapeHtml(meta.description)}">`
     )
     .replace(
+      /<meta property="og:type"[^>]*>/,
+      `<meta property="og:type" content="article">`
+    )
+    .replace(
       /<\/head>/,
       `<meta property="og:url" content="${meta.canonical}">
-<meta property="og:type" content="article">
 <meta property="og:image" content="${ogImage}">
 <link rel="canonical" href="${meta.canonical}">
 ${schemaTag}
