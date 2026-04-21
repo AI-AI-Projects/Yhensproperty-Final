@@ -162,7 +162,7 @@ const BGCGuide: React.FC = () => {
     <>
       <SEO
         title="BGC Taguig Neighbourhood Guide 2026: Things To Do, Restaurants, Property & Investment | Yhens Property"
-        description="Complete guide to Bonifacio Global City — things to do, best restaurants, hospitals, international schools, condo prices, rental yields, and why BGC is Metro Manila's top address for expats, OFW investors, and professionals."
+        description="BGC Taguig 2026: condo prices ₱6.8M–₱250M+, rental yields 4–6%, flood-free, walkable, St. Luke's hospital on-site, international schools nearby. Metro Manila's top address for expats & OFW investors."
         canonical="https://yhensproperty.com/guides/bgc-taguig-neighbourhood-guide"
         ogType="article"
         ogUrl="https://yhensproperty.com/guides/bgc-taguig-neighbourhood-guide"
@@ -556,9 +556,38 @@ const BGCGuide: React.FC = () => {
             <p className="leading-relaxed mb-3">
               That is not a premium for prestige — it is a premium for reliability. Prices have grown consistently year-on-year because demand from both local and international buyers has grown consistently. The entry point is higher than Makati or Ortigas, but so is the quality of what you are getting: a better-built environment, a stronger tenant, and a more liquid resale market.
             </p>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed mb-5">
               For investors specifically, the math works because of <em>who</em> rents in BGC. An expat tenant on a corporate lease is a fundamentally different risk profile to the general rental market. Lower vacancy, higher rent, less management overhead. That is what the BGC price premium buys.
             </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4">
+                <p className="font-black text-zinc-900 dark:text-white text-sm mb-3 flex items-center gap-2">
+                  <span className="material-icons text-primary text-base">thumb_up</span>
+                  Why BGC delivers
+                </p>
+                <ul className="space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300">
+                  <li className="flex items-start gap-2"><span className="text-primary font-bold mt-0.5">✓</span> Flood-free — purpose-built drainage, zero risk every typhoon season</li>
+                  <li className="flex items-start gap-2"><span className="text-primary font-bold mt-0.5">✓</span> 4–6% gross rental yield from high-quality expat tenants</li>
+                  <li className="flex items-start gap-2"><span className="text-primary font-bold mt-0.5">✓</span> Most walkable district in Metro Manila — no car needed</li>
+                  <li className="flex items-start gap-2"><span className="text-primary font-bold mt-0.5">✓</span> St. Luke's Medical Center on-site — best hospital in PH</li>
+                  <li className="flex items-start gap-2"><span className="text-primary font-bold mt-0.5">✓</span> Foreigners can own freehold CCT title directly</li>
+                  <li className="flex items-start gap-2"><span className="text-primary font-bold mt-0.5">✓</span> Strong resale liquidity — consistent buyer demand year-round</li>
+                </ul>
+              </div>
+              <div className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4">
+                <p className="font-black text-zinc-900 dark:text-white text-sm mb-3 flex items-center gap-2">
+                  <span className="material-icons text-zinc-500 text-base">info</span>
+                  Things to know before you buy
+                </p>
+                <ul className="space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300">
+                  <li className="flex items-start gap-2"><span className="text-zinc-400 font-bold mt-0.5">→</span> Higher entry price than Makati or Ortigas — justified by quality</li>
+                  <li className="flex items-start gap-2"><span className="text-zinc-400 font-bold mt-0.5">→</span> 40% foreign ownership quota — check availability per building</li>
+                  <li className="flex items-start gap-2"><span className="text-zinc-400 font-bold mt-0.5">→</span> Peak-hour traffic on BGC perimeter roads (Kalayaan, McKinley)</li>
+                  <li className="flex items-start gap-2"><span className="text-zinc-400 font-bold mt-0.5">→</span> Association dues higher than most Metro Manila condos</li>
+                  <li className="flex items-start gap-2"><span className="text-zinc-400 font-bold mt-0.5">→</span> Limited landed house options — primarily a condo market</li>
+                </ul>
+              </div>
+            </div>
           </section>
 
           {/* FAQ */}

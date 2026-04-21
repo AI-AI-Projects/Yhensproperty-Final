@@ -16,6 +16,7 @@ interface GuideMeta {
   description: string;
   canonical: string;
   articleSchema: object;
+  faqSchema?: object;
 }
 
 const GUIDE_META: Record<string, GuideMeta> = {
@@ -119,7 +120,7 @@ const GUIDE_META: Record<string, GuideMeta> = {
   },
   "bgc-taguig-neighbourhood-guide": {
     title: "BGC Taguig Neighbourhood Guide 2026: Things To Do, Restaurants, Property & Investment | Yhens Property",
-    description: "Complete guide to Bonifacio Global City — things to do, best restaurants, hospitals, international schools, condo prices, rental yields, and why BGC is Metro Manila's top address for expats, OFW investors, and professionals.",
+    description: "BGC Taguig 2026: condo prices \u20b16.8M\u2013\u20b1250M+, rental yields 4\u20136%, flood-free, walkable, St. Luke\u2019s hospital on-site, international schools nearby. Metro Manila\u2019s top address for expats & OFW investors.",
     canonical: "https://yhensproperty.com/guides/bgc-taguig-neighbourhood-guide",
     articleSchema: {
       "@context": "https://schema.org", "@type": "Article",
@@ -129,6 +130,27 @@ const GUIDE_META: Record<string, GuideMeta> = {
       "publisher": { "@type": "Organization", "name": "Yhens Property" },
       "datePublished": "2026-04-21", "dateModified": "2026-04-22",
       "url": "https://yhensproperty.com/guides/bgc-taguig-neighbourhood-guide",
+    },
+    faqSchema: {
+      "@context": "https://schema.org", "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What is there to do in BGC?", "acceptedAnswer": { "@type": "Answer", "text": "BGC offers the Mind Museum, BGC Arts Center, Track 30th urban park, a 70+ mural street art trail, Bonifacio High Street dining and retail, The Grid Food Market, Serendra, and some of Metro Manila's best restaurants and fitness studios — all within walking distance of each other." } },
+        { "@type": "Question", "name": "Is BGC walkable?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. BGC is the most walkable neighbourhood in Metro Manila. Wide, clean pavements, pedestrian crossings, and a compact grid layout mean residents can walk between their condo, office, restaurant, gym, and mall without needing a car or Grab." } },
+        { "@type": "Question", "name": "Is BGC good for families?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, particularly for expat families. International School Manila and British School Manila are both within 10\u201315 minutes. St. Luke's Medical Center BGC is on-site. The walkable, flood-free environment and the Mind Museum make it one of Metro Manila's most family-friendly urban addresses." } },
+        { "@type": "Question", "name": "Can foreigners buy property in BGC?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. BGC condominium units are CCT-eligible, allowing foreign nationals to hold freehold title directly. The 40% foreign ownership quota applies per building. BGC is one of the most legally straightforward places for foreigners to buy property in the Philippines." } },
+        { "@type": "Question", "name": "What is the rental yield in BGC?", "acceptedAnswer": { "@type": "Answer", "text": "BGC rental yields typically range from 4% to 6% per annum gross. Studios and 1-bedroom units in well-managed buildings generally perform strongest. The expat and multinational tenant pool provides high payment reliability and low vacancy rates." } },
+        { "@type": "Question", "name": "Is BGC better than Makati for investment?", "acceptedAnswer": { "@type": "Answer", "text": "BGC offers newer buildings, a more international tenant profile, and slightly higher rental yields. Makati offers a lower entry price with stable income. For investors targeting expat tenants and premium yields, BGC is the stronger choice." } },
+        { "@type": "Question", "name": "Is BGC flood-free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. BGC was purpose-built on elevated land with a modern underground drainage system. It does not flood during typhoon season \u2014 a significant advantage over most of Metro Manila." } },
+        { "@type": "Question", "name": "How far is BGC from NAIA airport?", "acceptedAnswer": { "@type": "Answer", "text": "Approximately 20\u201335 minutes via the Skyway or C5, depending on traffic. BGC is one of the closest major residential and business districts to NAIA in Metro Manila." } },
+        { "@type": "Question", "name": "Are there hospitals in BGC?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. St. Luke's Medical Center BGC is located within Bonifacio Global City itself \u2014 one of the Philippines' top-ranked private hospitals. The Medical City in Pasig is approximately 15 minutes away via C5." } },
+        { "@type": "Question", "name": "What are the best restaurants in BGC?", "acceptedAnswer": { "@type": "Answer", "text": "BGC has one of the highest concentrations of quality restaurants in the Philippines. The Grid Food Market is a curated food hall with multiple restaurant concepts. Bonifacio High Street and Serendra offer al fresco international dining. Burgos Circle is the go-to for nightlife and cocktails." } },
+        { "@type": "Question", "name": "Is BGC a good place to live in 2026?", "acceptedAnswer": { "@type": "Answer", "text": "Yes \u2014 BGC consistently ranks as the most liveable neighbourhood in Metro Manila. Flood-free streets, walkable access to restaurants, offices, gyms, and hospitals, a genuine international community, and continued development in Uptown Bonifacio and McKinley West make 2026 one of the strongest years for BGC quality of life." } },
+        { "@type": "Question", "name": "How much does it cost to live in BGC per month?", "acceptedAnswer": { "@type": "Answer", "text": "Budget roughly \u20b160,000\u2013\u20b1100,000/month for a comfortable lifestyle in a 1-bedroom condo \u2014 covering rent (\u20b135,000\u2013\u20b160,000), daily meals, utilities, gym, and transport. Ultra-premium living in a 3BR can exceed \u20b1250,000/month." } },
+        { "@type": "Question", "name": "How safe is BGC at night?", "acceptedAnswer": { "@type": "Answer", "text": "BGC is one of the safest areas in Metro Manila at night. The area is well-lit with visible security presence, CCTV coverage, and a compact layout that keeps foot traffic high into the late evening." } },
+        { "@type": "Question", "name": "How is commuting from BGC to Makati or Ortigas?", "acceptedAnswer": { "@type": "Answer", "text": "BGC to Makati CBD takes 10\u201325 minutes by car or Grab off-peak; Ortigas is 20\u201340 minutes via C5. The BGC Bus (\u20b113\u2013\u20b115) runs frequent routes to Ayala MRT station." } },
+        { "@type": "Question", "name": "What areas or clusters within BGC are best for buying or renting?", "acceptedAnswer": { "@type": "Answer", "text": "Bonifacio High Street and Serendra are popular for lifestyle access. Uptown Bonifacio near SM Aura is the newest cluster with premium new builds. Burgos Circle appeals to young professionals for nightlife proximity." } },
+        { "@type": "Question", "name": "BGC vs McKinley Hill vs Arca South \u2014 which is better?", "acceptedAnswer": { "@type": "Answer", "text": "BGC is the most established and liquid \u2014 best for rental income and foreign buyers. McKinley Hill is quieter and slightly cheaper. Arca South is the newest Taguig development with lower entry prices but still maturing in amenities. For maximum tenant demand and resale value, BGC leads." } },
+      ],
     },
   },
 };
@@ -161,7 +183,8 @@ export default async function handler(req: Request, ctx: Context): Promise<Respo
   const html = await res.text();
 
   const ogImage = "https://yhensproperty.com/Image/Hero_Villa_2.webp";
-  const schemaTag = `<script type="application/ld+json">${JSON.stringify(meta.articleSchema)}</script>`;
+  const schemaTag = `<script type="application/ld+json">${JSON.stringify(meta.articleSchema)}</script>`
+    + (meta.faqSchema ? `<script type="application/ld+json">${JSON.stringify(meta.faqSchema)}</script>` : "");
 
   const injected = html
     .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(meta.title)}</title>`)
