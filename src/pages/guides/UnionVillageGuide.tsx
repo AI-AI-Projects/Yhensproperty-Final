@@ -160,7 +160,7 @@ const UnionVillageGuide: React.FC = () => {
                     { place: 'UP Diliman', distance: '~7 min drive', why: 'Top state university — strong student & faculty rental demand' },
                     { place: 'Ateneo de Manila University', distance: '~10 min drive', why: 'Premier private university — professional tenant pool' },
                     { place: 'Miriam College', distance: '~8 min drive', why: 'K–12 to college — excellent for school-age children' },
-                    { place: 'St. Luke's Medical Center', distance: '~10 min drive', why: 'World-class hospital — healthcare access + staff rental demand' },
+                    { place: "St. Luke's Medical Center", distance: '~10 min drive', why: 'World-class hospital — healthcare access + staff rental demand' },
                     { place: 'Katipunan Avenue (C5)', distance: 'Direct access', why: 'Main artery to BGC, Makati, Ortigas, and the airport' },
                     { place: 'Eastwood City', distance: '~15 min drive', why: 'BPO hub and lifestyle centre — employment for professionals' },
                     { place: 'UP Town Center', distance: '~10 min drive', why: 'Al fresco dining, supermarkets, weekend market' },
