@@ -1,0 +1,15 @@
+[[edge_functions]]
+  path = "/property/*"
+  function = "og-injector"
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "https://ivvgyrmyjfftqteaiyuf.supabase.co/functions/v1/sitemap"
+  status = 200
+  force = true
+  [redirects.headers]
+    X-Forwarded-Host = "yhensproperty.com"
+
+[build]
+  command = "npm run build"
+  publish = "dist"

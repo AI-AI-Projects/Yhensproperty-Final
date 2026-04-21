@@ -1,0 +1,26 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /manage
+Disallow: /add
+Disallow: /edit
+Disallow: /login
+Disallow: /mfa-enroll
+Disallow: /mfa-verify
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+Sitemap: https://yhensproperty.com/sitemap.xml
