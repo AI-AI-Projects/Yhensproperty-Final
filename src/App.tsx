@@ -31,6 +31,7 @@ const RetiringPhilippines = lazy(() => import('./pages/guides/RetiringPhilippine
 const SellingGuide = lazy(() => import('./pages/guides/SellingGuide.tsx'));
 const BuyersGuide = lazy(() => import('./pages/guides/BuyersGuide.tsx'));
 const UnionVillageGuide = lazy(() => import('./pages/guides/UnionVillageGuide.tsx'));
+const BGCGuide = lazy(() => import('./pages/guides/BGCGuide.tsx'));
 const InventoryMaster = lazy(() => import('./pages/InventoryMaster.tsx'));
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({ children, adminOnly }) => {
@@ -177,6 +178,7 @@ const AppContent: React.FC = () => {
           <Route path="/guides/selling-guide-non-resident" element={<SellingGuide />} />
           <Route path="/guides/philippines-property-buyers-guide" element={<BuyersGuide />} />
           <Route path="/guides/union-village-quezon-city" element={<UnionVillageGuide />} />
+          <Route path="/guides/bgc-taguig-neighbourhood-guide" element={<BGCGuide />} />
           <Route path="/inventory" element={<InventoryMaster properties={properties} isLoading={loading} />} />
         </Routes>
         </Suspense>

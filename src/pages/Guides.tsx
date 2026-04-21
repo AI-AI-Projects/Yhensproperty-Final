@@ -74,13 +74,23 @@ export const guides = [
     readTime: '11 min',
     highlight: false,
   },
+  {
+    slug: 'bgc-taguig-neighbourhood-guide',
+    icon: 'location_city',
+    badge: 'Neighbourhood Guide',
+    title: 'BGC, Taguig: Complete Neighbourhood Guide — Things To Do, Restaurants, Property & Investment',
+    seoPhrase: 'Things to do in BGC Manila, best restaurants, condo for sale BGC 2026.',
+    description: "The complete guide to Bonifacio Global City — things to do, best restaurants, hospitals, international schools, condo prices, rental yields, and why BGC is Metro Manila's top address for expats, OFW investors, and professionals.",
+    readTime: '12 min',
+    highlight: false,
+  },
 ];
 
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "CollectionPage",
   "name": "Investor Guides — Philippine Real Estate for International & Foreign Investors 2026",
-  "description": "A knowledge hub of 7 expert guides covering the buyer's guide with all fees and taxes, property ownership law, the 99-year lease, rental yield comparisons, retirement visas, selling strategies, and neighbourhood guides for investors in the Philippines.",
+  "description": "A knowledge hub of 8 expert guides covering the buyer's guide with all fees and taxes, property ownership law, the 99-year lease, rental yield comparisons, retirement visas, selling strategies, and neighbourhood guides for BGC and Quezon City.",
   "publisher": { "@type": "Organization", "name": siteConfig.officialName, "url": "https://yhensproperty.com" },
   "hasPart": guides.map(g => ({
     "@type": "Article",
