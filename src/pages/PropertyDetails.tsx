@@ -234,9 +234,34 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ properties, isLoading
 
   if (!property) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-        <h2 className="text-2xl font-bold mb-4 text-zinc-400">Property not found</h2>
-        <Link to="/" className="text-primary font-bold hover:underline">Back to listings</Link>
+      <div className="min-h-screen bg-white dark:bg-zinc-950 flex items-center justify-center px-6">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <span className="material-icons text-3xl text-zinc-400">search_off</span>
+          </div>
+          <h1 className="text-2xl font-black text-zinc-900 dark:text-white mb-3 tracking-tight">Listing No Longer Available</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed mb-8">
+            This property may have been sold, rented, or removed. Browse our current listings to find something similar.
+          </p>
+          <div className="flex flex-col gap-3">
+            <Link to="/category/buy-condos" className="flex items-center justify-center gap-2 bg-primary text-zinc-900 font-bold py-3 px-6 rounded-xl hover:brightness-110 transition-all">
+              <span className="material-icons text-sm">apartment</span>
+              Browse Condos for Sale
+            </Link>
+            <Link to="/category/buy-houses" className="flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold py-3 px-6 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all">
+              <span className="material-icons text-sm">home</span>
+              Browse Houses for Sale
+            </Link>
+            <Link to="/inventory" className="flex items-center justify-center gap-2 text-zinc-500 hover:text-primary font-bold py-3 px-6 rounded-xl transition-all text-sm">
+              <span className="material-icons text-sm">table_view</span>
+              View Full Inventory
+            </Link>
+          </div>
+          <p className="text-xs text-zinc-400 mt-6">
+            Looking for something specific?{' '}
+            <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Ask Yhen directly</a>
+          </p>
+        </div>
       </div>
     );
   }
@@ -605,6 +630,27 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ properties, isLoading
             height="800"
             decoding="async"
           />
+        </div>
+      )}
+
+      {(['sold', 'rented', 'archived'] as const).includes(property.status as 'sold' | 'rented' | 'archived') && (
+        <div className="mb-6 bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="material-icons text-zinc-400">info</span>
+            <div>
+              <p className="font-black text-white text-sm">
+                This property is {property.status === 'sold' ? 'sold' : property.status === 'rented' ? 'rented' : 'no longer listed'}.
+              </p>
+              <p className="text-zinc-400 text-xs mt-0.5">The details below are kept for reference. Browse current listings to find something similar.</p>
+            </div>
+          </div>
+          <Link
+            to={property.listingType === 'rent' ? '/category/rent' : '/category/buy-condos'}
+            className="shrink-0 inline-flex items-center gap-2 bg-primary text-zinc-900 font-bold text-sm px-5 py-2.5 rounded-xl hover:brightness-110 transition-all"
+          >
+            <span className="material-icons text-sm">search</span>
+            Browse Available Listings
+          </Link>
         </div>
       )}
 

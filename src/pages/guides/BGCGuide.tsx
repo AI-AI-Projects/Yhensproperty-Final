@@ -490,7 +490,7 @@ const BGCGuide: React.FC = () => {
                 { slug: 'aurelia-residences', label: 'Aurelia Residences — Ultra-premium', sub: 'McKinley Parkway, BGC flagship', icon: 'star', href: '/property/aurelia-residences-for-sale-in-bgc' },
                 { slug: 'grand-hyatt', label: 'Grand Hyatt Residences — 3BR for Sale or Lease', sub: 'Luxury hotel-branded living', icon: 'hotel', href: '/property/grand-hyatt-residences-for-sale-in-bgc-yhen-s-property' },
               ].map((item) => (
-                <Link key={item.slug} to={item.href} className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 hover:border-primary/50 hover:bg-primary/5 transition-all group">
+                <Link key={item.slug} to="/category/buy-condos" className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 hover:border-primary/50 hover:bg-primary/5 transition-all group">
                   <span className="material-icons text-xl text-primary group-hover:scale-110 transition-transform">{item.icon}</span>
                   <div>
                     <p className="font-bold text-sm text-zinc-900 dark:text-white group-hover:text-primary transition-colors">{item.label}</p>
