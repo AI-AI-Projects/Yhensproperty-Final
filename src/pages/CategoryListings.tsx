@@ -9,7 +9,7 @@ interface CategoryListingsProps {
   properties: PropertyListing[];
 }
 
-const CATEGORY_MAP: Record<string, { title: string; types?: PropertyType[]; listingType?: 'sale' | 'rent' }> = {
+const CATEGORY_MAP: Record<string, { title: string; types?: PropertyType[]; listingType?: 'sale' | 'rent'; locationKeywords?: string[] }> = {
   'condominiums': {
     title: 'Condominiums',
     types: [PropertyType.Condo, PropertyType.Apartment]
@@ -67,7 +67,12 @@ const CATEGORY_MAP: Record<string, { title: string; types?: PropertyType[]; list
     title: 'Commercial for Rent',
     types: [PropertyType.Commercial, PropertyType.Warehouse],
     listingType: 'rent'
-  }
+  },
+  // Location-specific
+  'bgc': {
+    title: 'Properties in BGC (Bonifacio Global City)',
+    locationKeywords: ['bgc', 'bonifacio', 'fort bonifacio', 'uptown bonifacio'],
+  },
 };
 
 // Utility to format number with commas
@@ -165,6 +170,10 @@ const CategoryListings: React.FC<CategoryListingsProps> = ({ properties }) => {
           if (p.status !== 'active' && p.status !== 'draft') return false;
           if (categoryConfig.listingType && p.listingType !== categoryConfig.listingType) return false;
           if (categoryConfig.types && !categoryConfig.types.includes(p.type)) return false;
+          if (categoryConfig.locationKeywords) {
+            const searchable = `${p.city} ${p.barangay} ${p.address} ${p.title}`.toLowerCase();
+            if (!categoryConfig.locationKeywords.some(kw => searchable.includes(kw))) return false;
+          }
           return true;
         })
       : properties.filter(p => p.status === 'active' || p.status === 'draft');

@@ -67,6 +67,7 @@ async function generateSitemap() {
     { url: '/guides/philippines-property-buyers-guide', priority: '0.9', changefreq: 'monthly' },
     { url: '/guides/union-village-quezon-city', priority: '0.9', changefreq: 'monthly' },
     { url: '/guides/bgc-taguig-neighbourhood-guide', priority: '0.9', changefreq: 'monthly' },
+    { url: '/category/bgc', priority: '0.8', changefreq: 'daily' },
     { url: '/inventory', priority: '0.8', changefreq: 'daily' },
   ];
 

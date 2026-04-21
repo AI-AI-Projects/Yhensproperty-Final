@@ -453,26 +453,28 @@ const BGCGuide: React.FC = () => {
 
           {/* Property types + listings */}
           <section>
-            <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight mb-6">Properties Available in BGC</h2>
-            <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-700 mb-5">
+            <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight mb-6">BGC Property Prices by Bedroom</h2>
+            <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-700 mb-4">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-zinc-950 text-white">
                     <th className="text-left px-5 py-4 font-bold">Type</th>
-                    <th className="text-left px-5 py-4 font-bold">Price Range</th>
-                    <th className="text-left px-5 py-4 font-bold">Examples</th>
+                    <th className="text-left px-5 py-4 font-bold">Typical Size</th>
+                    <th className="text-left px-5 py-4 font-bold text-primary">Price Range</th>
+                    <th className="text-left px-5 py-4 font-bold">Example Buildings</th>
                     <th className="text-left px-5 py-4 font-bold">Best For</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {[
-                    { type: 'Studio Condo', price: '₱6.8M – ₱9M', examples: 'Icon Residences, Grand Hamptons Tower', best: 'Entry-level OFW investment, first-time buyers' },
-                    { type: '1-Bedroom Condo', price: '₱9M – ₱30M', examples: 'Trion Tower, Uptown Parksuites, Grand Hamptons', best: 'OFW investors, young professionals, expat rentals' },
-                    { type: '3-Bedroom Condo', price: '₱30M – ₱80M+', examples: 'Grand Hyatt Residences', best: 'Expat families, high-income owner-occupiers' },
-                    { type: 'Ultra-Premium', price: '₱160M – ₱250M+', examples: 'Aurelia Residences, Shangri-La at the Fort', best: 'HNW buyers, luxury investors, corporate housing' },
+                    { type: 'Studio', size: '~36 sqm', price: '₱6.8M – ₱8.5M', examples: 'Icon Residences, Icon Plaza, Grand Hamptons', best: 'Entry-level OFW investment, first-time buyers' },
+                    { type: '1 Bedroom', size: '44–65 sqm', price: '₱7M – ₱26M', examples: 'Grand Hamptons, Uptown Parksuites', best: 'OFW investors, young professionals, expat rentals' },
+                    { type: '2 Bedroom', size: '~50 sqm', price: 'From ₱8.5M', examples: 'Trion Tower', best: 'Small families, couples upgrading from studio' },
+                    { type: '3 Bedroom', size: '94–298 sqm', price: '₱30M – ₱250M+', examples: 'Florence Tower, Grand Hyatt, Aurelia Residences', best: 'Expat families, HNW buyers, corporate housing' },
                   ].map((row, i) => (
                     <tr key={i} className={i % 2 === 0 ? 'bg-white dark:bg-zinc-900' : 'bg-zinc-50 dark:bg-zinc-900/50'}>
                       <td className="px-5 py-3.5 font-semibold text-zinc-800 dark:text-zinc-200">{row.type}</td>
+                      <td className="px-5 py-3.5 text-zinc-500">{row.size}</td>
                       <td className="px-5 py-3.5 text-primary font-medium">{row.price}</td>
                       <td className="px-5 py-3.5 text-zinc-600 dark:text-zinc-400">{row.examples}</td>
                       <td className="px-5 py-3.5 text-zinc-600 dark:text-zinc-400">{row.best}</td>
@@ -481,24 +483,11 @@ const BGCGuide: React.FC = () => {
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-zinc-400 mb-6">Prices based on 2025–2026 BGC market data. Contact Yhens Property for current verified pricing and availability.</p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[
-                { slug: 'icon-residences-bgc', label: 'Icon Residences — Studio from ₱6.8M', sub: 'Entry-level BGC investment', icon: 'apartment', href: '/property/36-sqm-studio-in-icon-residences-bgc-manila' },
-                { slug: 'uptown-parksuites', label: 'Uptown Parksuites — 1BR ₱26M', sub: 'Premium mid-range, Uptown Bonifacio', icon: 'apartment', href: '/property/uptown-parksuites-tower-2-for-sale-in-bgc-taguig-city-yhen-s-property' },
-                { slug: 'aurelia-residences', label: 'Aurelia Residences — Ultra-premium', sub: 'McKinley Parkway, BGC flagship', icon: 'star', href: '/property/aurelia-residences-for-sale-in-bgc' },
-                { slug: 'grand-hyatt', label: 'Grand Hyatt Residences — 3BR for Sale or Lease', sub: 'Luxury hotel-branded living', icon: 'hotel', href: '/property/grand-hyatt-residences-for-sale-in-bgc-yhen-s-property' },
-              ].map((item) => (
-                <Link key={item.slug} to="/category/buy-condos" className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 hover:border-primary/50 hover:bg-primary/5 transition-all group">
-                  <span className="material-icons text-xl text-primary group-hover:scale-110 transition-transform">{item.icon}</span>
-                  <div>
-                    <p className="font-bold text-sm text-zinc-900 dark:text-white group-hover:text-primary transition-colors">{item.label}</p>
-                    <p className="text-xs text-zinc-500">{item.sub}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <p className="text-xs text-zinc-400 mb-5">Price ranges based on 2025–2026 BGC market data from active listings. Contact Yhens Property for current verified pricing.</p>
+            <Link to="/category/bgc" className="inline-flex items-center gap-2 bg-primary text-zinc-900 font-bold text-sm px-6 py-3 rounded-xl hover:brightness-110 transition-all shadow-md shadow-primary/20">
+              <span className="material-icons text-sm">apartment</span>
+              View All Current BGC Listings
+            </Link>
           </section>
 
           {/* Is BGC overpriced */}
@@ -562,7 +551,7 @@ const BGCGuide: React.FC = () => {
                 Ask Yhen on WhatsApp
               </a>
               <Link
-                to="/category/buy-condos"
+                to="/category/bgc"
                 className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 text-white font-bold py-4 px-8 rounded-2xl transition-all border border-white/10"
               >
                 <span className="material-icons text-sm">apartment</span>
@@ -575,11 +564,11 @@ const BGCGuide: React.FC = () => {
           <section>
             <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight mb-4">Browse More Listings</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Link to="/category/buy-condos" className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 hover:border-primary/50 hover:bg-primary/5 transition-all group">
+              <Link to="/category/bgc" className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 hover:border-primary/50 hover:bg-primary/5 transition-all group">
                 <span className="material-icons text-xl text-primary">apartment</span>
                 <div>
-                  <p className="font-bold text-sm text-zinc-900 dark:text-white group-hover:text-primary transition-colors">Condos for Sale</p>
-                  <p className="text-xs text-zinc-500">BGC, Makati & Manila</p>
+                  <p className="font-bold text-sm text-zinc-900 dark:text-white group-hover:text-primary transition-colors">BGC Properties</p>
+                  <p className="text-xs text-zinc-500">All current BGC listings</p>
                 </div>
               </Link>
               <Link to="/category/rent-condos" className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 hover:border-primary/50 hover:bg-primary/5 transition-all group">
