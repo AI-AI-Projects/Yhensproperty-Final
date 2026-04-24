@@ -57,7 +57,7 @@ async function generateSitemap() {
     { url: '/category/rent-land', priority: '0.6', changefreq: 'daily' },
     { url: '/category/rent-commercial', priority: '0.6', changefreq: 'daily' },
     { url: '/privacy', priority: '0.3', changefreq: 'yearly' },
-    { url: '/terms', priority: '0.3', changefreq: 'yearly' },
+    { url: '/terms-of-service', priority: '0.3', changefreq: 'yearly' },
     { url: '/guides', priority: '0.9', changefreq: 'monthly' },
     { url: '/guides/foreigner-property-ownership', priority: '0.9', changefreq: 'monthly' },
     { url: '/guides/ra-12252-99-year-lease', priority: '0.9', changefreq: 'monthly' },

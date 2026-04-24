@@ -168,6 +168,36 @@ export default async function handler(req: Request, ctx: Context): Promise<Respo
   const { pathname } = new URL(req.url);
   const ua = req.headers.get("user-agent") ?? "";
 
+  const staticMeta: Record<string, { title: string; description: string; canonical: string }> = {
+    "/about": {
+      title: "About Yhen - Experienced Real Estate Agent in the Philippines | Yhen's Property",
+      description: "Meet Yhen Oria, founder of Yhen's Property. With 6 years of experience in Philippine real estate, offering boutique personal service for buying and selling premium properties.",
+      canonical: "https://yhensproperty.com/about",
+    },
+    "/terms-of-service": {
+      title: "Terms of Service - Yhen's Property",
+      description: "Terms of Service for Yhen's Property - Review the terms and conditions for using our real estate listing platform.",
+      canonical: "https://yhensproperty.com/terms-of-service",
+    },
+  };
+
+  if (staticMeta[pathname] && isSocialBot(ua)) {
+    const m = staticMeta[pathname];
+    const res = await ctx.next();
+    const html = await res.text();
+    const injected = html
+      .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(m.title)}</title>`)
+      .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${escapeHtml(m.description)}">`)
+      .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escapeHtml(m.title)}">`)
+      .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escapeHtml(m.description)}">`)
+      .replace(/<meta property="og:type"[^>]*>/, `<meta property="og:type" content="website">`)
+      .replace(/<\/head>/, `<link rel="canonical" href="${m.canonical}">\n</head>`);
+    return new Response(injected, {
+      status: res.status,
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=0, must-revalidate", vary: "user-agent" },
+    });
+  }
+
   const match = pathname.match(/^\/guides\/([^/]+)\/?$/);
   if (!match || !isSocialBot(ua)) {
     return ctx.next();

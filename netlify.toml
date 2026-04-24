@@ -6,6 +6,20 @@
   path = "/guides/*"
   function = "guide-meta-injector"
 
+[[edge_functions]]
+  path = "/about"
+  function = "guide-meta-injector"
+
+[[edge_functions]]
+  path = "/terms-of-service"
+  function = "guide-meta-injector"
+
+[[redirects]]
+  from = "/terms"
+  to = "/terms-of-service"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/sitemap.xml"
   to = "https://ivvgyrmyjfftqteaiyuf.supabase.co/functions/v1/sitemap"
