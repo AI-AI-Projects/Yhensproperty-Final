@@ -491,7 +491,7 @@ const Home: React.FC<HomeProps> = ({ properties, isLoading }) => {
             <span className="text-primary">Yhen's Property</span>
           </h1>
           <p className="text-base sm:text-lg md:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl mx-auto drop-shadow-md font-medium leading-relaxed px-4">
-            Boutique Freelance Philipine Real Estate Agency, work directly with <span className="text-primary">Yhen</span> from <span className="text-primary">Start</span> to <span className="text-primary">Finish</span> where every investment and client matters.
+            Boutique Freelance Philippine Real Estate Agency, work directly with <span className="text-primary">Yhen</span> from <span className="text-primary">Start</span> to <span className="text-primary">Finish</span> where every investment and client matters.
           </p>
 
           {/* Advanced Search Hub */}

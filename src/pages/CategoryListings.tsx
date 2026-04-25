@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { PropertyListing, PropertyType } from '../types.ts';
 import { PropertyCard } from './Home.tsx';
 import { supabase } from '../services/supabaseClient.ts';
@@ -75,6 +75,20 @@ const CATEGORY_MAP: Record<string, { title: string; types?: PropertyType[]; list
   },
 };
 
+const CATEGORY_PRIMARY_TYPE: Record<string, string> = {
+  'buy-condos': PropertyType.Condo,
+  'rent-condos': PropertyType.Condo,
+  'condominiums': PropertyType.Condo,
+  'buy-houses': PropertyType.House,
+  'rent-houses': PropertyType.House,
+  'houses': PropertyType.House,
+  'buy-land': PropertyType.Land,
+  'rent-land': PropertyType.Land,
+  'land': PropertyType.Land,
+  'buy-commercial': PropertyType.Commercial,
+  'rent-commercial': PropertyType.Commercial,
+};
+
 // Utility to format number with commas
 const formatWithCommas = (value: string) => {
   if (!value) return '';
@@ -84,6 +98,7 @@ const formatWithCommas = (value: string) => {
 
 const CategoryListings: React.FC<CategoryListingsProps> = ({ properties }) => {
   const { category } = useParams<{ category: string }>();
+  const [searchParams] = useSearchParams();
 
   const [isSearching, setIsSearching] = useState(false);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
@@ -123,6 +138,18 @@ const CategoryListings: React.FC<CategoryListingsProps> = ({ properties }) => {
     dateFilter: '',
     sortBy: ''
   });
+
+  useEffect(() => {
+    const minPrice = searchParams.get('minPrice') || '';
+    const maxPrice = searchParams.get('maxPrice') || '';
+    const beds = searchParams.get('beds') || searchParams.get('bedrooms') || '';
+    const baths = searchParams.get('baths') || searchParams.get('bathrooms') || '';
+    const location = searchParams.get('location') || '';
+    const type = searchParams.get('type') || CATEGORY_PRIMARY_TYPE[category?.toLowerCase() ?? ''] || '';
+    const fromUrl = { minPrice, maxPrice, beds, baths, location, type };
+    setSearchFilters(prev => ({ ...prev, ...fromUrl }));
+    setAppliedFilters(prev => ({ ...prev, ...fromUrl }));
+  }, [searchParams.toString()]);
 
   useEffect(() => {
     const loadAmenities = async () => {

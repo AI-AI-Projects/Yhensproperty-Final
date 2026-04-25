@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar.tsx';
 import ScrollToTop from './components/ScrollToTop.tsx';
 import { FloatingContactButtons } from './components/FloatingContactButtons.tsx';
+import { VoiceWidget } from './components/VoiceWidget.tsx';
 import Home from './pages/Home.tsx';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { PropertyListing } from './types.ts';
@@ -131,6 +132,7 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col">
       <Navbar />
       <FloatingContactButtons />
+      <VoiceWidget />
       <main className="flex-grow">
         <Suspense fallback={
           <div className="min-h-screen flex items-center justify-center">
@@ -192,7 +194,7 @@ const AppContent: React.FC = () => {
                 <img src={logoUrl} alt="Yhen's Property" width="196" height="48" className="h-12 w-auto object-contain dark:brightness-100 rounded-lg" />
               </div>
               <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed font-medium">
-                Boutique Freelance Philipine Real Estate Agency, work directly with <span className="text-primary font-semibold">Yhen</span> from <span className="text-primary font-semibold">Start</span> to <span className="text-primary font-semibold">Finish</span> where every investment and client matters.
+                Boutique Freelance Philippine Real Estate Agency, work directly with <span className="text-primary font-semibold">Yhen</span> from <span className="text-primary font-semibold">Start</span> to <span className="text-primary font-semibold">Finish</span> where every investment and client matters.
               </p>
             </div>
 

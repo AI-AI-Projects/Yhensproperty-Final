@@ -1,0 +1,16 @@
+{
+  "name": "yhens-voice-test",
+  "version": "1.0.0",
+  "description": "Local test environment for Gemini Voice Agent",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@google/genai": "*",
+    "@supabase/supabase-js": "*",
+    "dotenv": "*",
+    "express": "*",
+    "ws": "*"
+  }
+}

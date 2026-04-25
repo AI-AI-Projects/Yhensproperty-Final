@@ -1,0 +1,491 @@
+import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
+
+const PAGE_LABELS: Record<string, string> = {
+  '/': 'Home page',
+  '/contact': 'Contact page',
+  '/about': 'About Yhen page — Yhen Oria, licensed agent, 6 years experience, expat specialist',
+  '/sell': 'Sell / List Your Property page',
+  '/guides': 'Investor Guides index page',
+  '/guides/foreigner-property-ownership': 'Guide: Foreigner Property Ownership in the Philippines',
+  '/guides/bgc-taguig-neighbourhood-guide': 'Guide: BGC & Taguig Neighbourhood Guide',
+  '/guides/philippines-property-buyers-guide': 'Guide: Philippines Property Buyers Guide',
+  '/guides/bgc-makati-batangas-rental-yields': 'Guide: BGC, Makati & Batangas Rental Yields',
+  '/guides/retiring-philippines-srrv': 'Guide: Retiring in the Philippines (SRRV)',
+  '/guides/selling-guide-non-resident': 'Guide: Selling Guide for Non-Residents',
+  '/guides/ra-12252-99-year-lease': 'Guide: RA 12252 — 99-Year Lease Law',
+  '/inventory': 'Property Inventory page (full master listing of all properties)',
+  '/category/buy-condos': 'Buy Condos listings page',
+  '/category/buy-houses': 'Buy Houses listings page',
+  '/category/buy-land': 'Buy Land listings page',
+  '/category/buy-commercial': 'Buy Commercial listings page',
+  '/category/rent-condos': 'Rent Condos listings page',
+  '/category/rent-houses': 'Rent Houses listings page',
+  '/category/rent-land': 'Rent Land listings page',
+  '/category/rent-commercial': 'Rent Commercial listings page',
+};
+
+type Status = 'idle' | 'connecting' | 'listening' | 'speaking';
+
+interface Property {
+  title: string;
+  url: string;
+  price: string;
+  beds: number | string;
+  location: string;
+  image?: string | null;
+}
+
+function convertFloat32ToInt16(buffer: Float32Array): Int16Array {
+  const out = new Int16Array(buffer.length);
+  for (let i = 0; i < buffer.length; i++) {
+    out[i] = Math.max(-1, Math.min(1, buffer[i])) * 0x7fff;
+  }
+  return out;
+}
+
+function base64ToInt16Array(b64: string): Int16Array {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Int16Array(bytes.buffer);
+}
+
+async function buildPageContext(pathname: string): Promise<string> {
+  const propertyMatch = pathname.match(/^\/property\/(.+)$/);
+  if (propertyMatch) {
+    const slug = propertyMatch[1];
+    const { data } = await supabase
+      .from('properties')
+      .select('title, price, beds, baths, sqft, floor, type, listing_type, city, barangay, condo_name, address, description, amenities, lot_area, status')
+      .eq('slug', slug)
+      .single();
+    if (data) {
+      const parts = [
+        `Title: ${data.title}`,
+        `Type: ${data.type} for ${data.listing_type === 'sale' ? 'sale' : 'rent'}`,
+        `Price: ₱${Number(data.price).toLocaleString()}`,
+        data.beds != null ? `Bedrooms: ${data.beds === 0 ? 'Studio' : data.beds}` : null,
+        data.baths != null ? `Bathrooms: ${data.baths}` : null,
+        data.sqft ? `Floor area: ${data.sqft} sqm` : null,
+        data.lot_area ? `Lot area: ${data.lot_area} sqm` : null,
+        data.floor != null ? `Floor: ${data.floor}` : null,
+        [data.condo_name, data.barangay, data.city].filter(Boolean).length
+          ? `Location: ${[data.condo_name, data.barangay, data.city].filter(Boolean).join(', ')}` : null,
+        data.address ? `Address: ${data.address}` : null,
+        data.amenities?.length ? `Amenities: ${(data.amenities as string[]).join(', ')}` : null,
+        `Status: ${data.status}`,
+        data.description ? `Description: ${data.description}` : null,
+      ].filter(Boolean).join('\n');
+      return `[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY: user is viewing a property listing page]\n[PROPERTY DETAILS — use to answer questions, do not read aloud:\n${parts}]`;
+    }
+    return '[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY: user is viewing a property listing page]';
+  }
+  const label = PAGE_LABELS[pathname] ?? `Page: ${pathname}`;
+  return `[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY: user is now viewing ${label}]`;
+}
+
+export const VoiceWidget: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState<Status>('idle');
+  const [isMuted, setIsMuted] = useState(false);
+  const [speechText, setSpeechText] = useState('');
+  const [speaker, setSpeaker] = useState<'yhen' | 'user' | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
+
+  const wsRef = useRef<WebSocket | null>(null);
+  const pathnameRef = useRef(location.pathname);
+  pathnameRef.current = location.pathname;
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const playbackContextRef = useRef<AudioContext | null>(null);
+  const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
+  const activeCountRef = useRef(0);
+  const nextPlayTimeRef = useRef(0);
+  const pendingTurnCompleteRef = useRef(false);
+  const isAISpeakingRef = useRef(false);
+  const yhenBufferRef = useRef('');
+  const isMutedRef = useRef(false);
+
+  isMutedRef.current = isMuted;
+
+  const stopAllAudio = useCallback(() => {
+    activeSourcesRef.current.forEach(s => { try { s.stop(); } catch (_) {} });
+    activeSourcesRef.current = [];
+    activeCountRef.current = 0;
+    pendingTurnCompleteRef.current = false;
+    isAISpeakingRef.current = false;
+    nextPlayTimeRef.current = 0;
+  }, []);
+
+  const playAudio = useCallback((b64: string) => {
+    if (!playbackContextRef.current) {
+      playbackContextRef.current = new AudioContext({ sampleRate: 24000 });
+    }
+    const ctx = playbackContextRef.current;
+    const int16 = base64ToInt16Array(b64);
+    const float32 = new Float32Array(int16.length);
+    for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 0x7fff;
+    const buf = ctx.createBuffer(1, float32.length, 24000);
+    buf.getChannelData(0).set(float32);
+    const source = ctx.createBufferSource();
+    source.buffer = buf;
+    source.connect(ctx.destination);
+    if (nextPlayTimeRef.current < ctx.currentTime) nextPlayTimeRef.current = ctx.currentTime;
+    activeCountRef.current++;
+    activeSourcesRef.current.push(source);
+    source.onended = () => {
+      activeCountRef.current--;
+      activeSourcesRef.current = activeSourcesRef.current.filter(s => s !== source);
+      if (pendingTurnCompleteRef.current && activeCountRef.current === 0) {
+        pendingTurnCompleteRef.current = false;
+        isAISpeakingRef.current = false;
+        setStatus('listening');
+      }
+    };
+    source.start(nextPlayTimeRef.current);
+    nextPlayTimeRef.current += buf.duration;
+  }, []);
+
+  const handleMessage = useCallback((msg: Record<string, unknown>) => {
+    if (msg.type === 'interrupted') {
+      stopAllAudio();
+      yhenBufferRef.current = '';
+      setStatus('listening');
+    } else if (msg.type === 'aiSpeaking') {
+      isAISpeakingRef.current = true;
+      pendingTurnCompleteRef.current = false;
+      yhenBufferRef.current = '';
+      setStatus('speaking');
+    } else if (msg.type === 'audio') {
+      playAudio(msg.data as string);
+    } else if (msg.type === 'turnComplete') {
+      yhenBufferRef.current = '';
+      if (activeCountRef.current === 0) {
+        isAISpeakingRef.current = false;
+        setStatus('listening');
+      } else {
+        pendingTurnCompleteRef.current = true;
+      }
+    } else if (msg.type === 'text') {
+      yhenBufferRef.current += msg.data as string;
+      setSpeaker('yhen');
+      setSpeechText(yhenBufferRef.current);
+    } else if (msg.type === 'userText') {
+      setSpeaker('user');
+      setSpeechText(msg.data as string);
+    } else if (msg.type === 'properties') {
+      setProperties(msg.data as Property[]);
+    } else if (msg.type === 'navigate') {
+      navigate(msg.path as string);
+    } else if (msg.type === 'whatsapp') {
+      const text = encodeURIComponent(msg.message as string);
+      window.open(`https://wa.me/639467543767?text=${text}`, '_blank');
+    }
+  }, [stopAllAudio, playAudio]);
+
+  const disconnect = useCallback(() => {
+    stopAllAudio();
+    if (playbackContextRef.current) { playbackContextRef.current.close(); playbackContextRef.current = null; }
+    if (wsRef.current) wsRef.current.close();
+    if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach(t => t.stop());
+    if (audioContextRef.current) audioContextRef.current.close();
+    if (scriptProcessorRef.current) scriptProcessorRef.current.disconnect();
+    wsRef.current = null;
+    mediaStreamRef.current = null;
+    audioContextRef.current = null;
+    scriptProcessorRef.current = null;
+    setStatus('idle');
+    setIsMuted(false);
+    setSpeechText('');
+    setSpeaker(null);
+    setProperties([]);
+    setOpen(false);
+  }, [stopAllAudio]);
+
+  const connect = useCallback(async () => {
+    if (wsRef.current) return;
+    setStatus('connecting');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true }
+      });
+      mediaStreamRef.current = stream;
+      const ws = new WebSocket('ws://localhost:3001');
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setStatus('listening');
+        buildPageContext(pathnameRef.current).then(ctx => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'pageContext', data: ctx }));
+          }
+        });
+        const ctx = new AudioContext({ sampleRate: 16000 });
+        audioContextRef.current = ctx;
+        const src = ctx.createMediaStreamSource(stream);
+        const processor = ctx.createScriptProcessor(4096, 1, 1);
+        scriptProcessorRef.current = processor;
+        src.connect(processor);
+        processor.connect(ctx.destination);
+        processor.onaudioprocess = (e) => {
+          if (ws.readyState !== WebSocket.OPEN || isMutedRef.current) return;
+          const pcm16 = convertFloat32ToInt16(e.inputBuffer.getChannelData(0));
+          const b64 = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
+          ws.send(JSON.stringify({ type: 'realtimeInput', data: b64 }));
+        };
+      };
+
+      ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
+      ws.onclose = () => disconnect();
+    } catch (err) {
+      console.error(err);
+      setStatus('idle');
+      alert('Could not access microphone or connect to voice server.');
+    }
+  }, [handleMessage, disconnect]);
+
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    buildPageContext(location.pathname).then(ctx => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'pageContext', data: ctx }));
+      }
+    });
+  }, [location.pathname]);
+
+  const handleMicClick = () => {
+    if (status === 'idle') {
+      setOpen(true);
+      connect();
+    }
+  };
+
+  const toggleMute = () => setIsMuted(m => !m);
+
+  const dismissProperty = (index: number) => {
+    setProperties(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const statusLabel = status === 'connecting' ? 'Connecting...'
+    : status === 'listening' ? 'Listening...'
+    : status === 'speaking' ? 'Yhen is speaking'
+    : 'Tap to start';
+
+  const isConnected = status !== 'idle' && status !== 'connecting';
+
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: '24px',
+      left: '24px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      gap: '10px',
+      zIndex: 9999,
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    }}>
+
+      {/* Expanded card */}
+      {open && (
+        <div style={{
+          background: 'rgba(15,15,17,0.96)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '18px',
+          width: '300px',
+          maxHeight: 'calc(100vh - 120px)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        }}>
+          {/* Status bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 16px',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
+                background: status === 'listening' ? '#0df259' : status === 'speaking' ? '#22c55e' : '#52525b',
+                boxShadow: status === 'listening' ? '0 0 6px #0df259' : status === 'speaking' ? '0 0 6px #22c55e' : 'none',
+              }} />
+              <span style={{
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: status === 'listening' ? '#0df259' : status === 'speaking' ? '#22c55e' : '#71717a',
+              }}>{statusLabel}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {/* Mute */}
+              <button onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'} style={{
+                width: '28px', height: '28px', borderRadius: '50%',
+                background: isMuted ? '#ef4444' : 'rgba(255,255,255,0.07)',
+                border: 'none', cursor: 'pointer', color: isMuted ? '#fff' : '#a1a1aa',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {isMuted ? (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V20H9v2h6v-2h-2v-2.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
+                  </svg>
+                ) : (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V20H9v2h6v-2h-2v-2.07A7 7 0 0 0 19 11h-2z"/>
+                  </svg>
+                )}
+              </button>
+              {/* Disconnect */}
+              <button onClick={disconnect} title="End session" style={{
+                width: '28px', height: '28px', borderRadius: '50%',
+                background: 'rgba(255,255,255,0.07)',
+                border: 'none', cursor: 'pointer', color: '#ef4444',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Speech text */}
+          <div style={{
+            padding: '14px 16px',
+            minHeight: '64px',
+            maxHeight: '180px',
+            overflowY: 'auto',
+            fontSize: '0.875rem',
+            lineHeight: 1.6,
+            color: speechText ? '#f4f4f5' : '#52525b',
+            fontStyle: speechText ? 'normal' : 'italic',
+          }}>
+            {speechText ? (
+              <>
+                <div style={{
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: speaker === 'yhen' ? '#0df259' : '#71717a',
+                  marginBottom: '4px',
+                }}>{speaker === 'yhen' ? 'Yhen' : 'You'}</div>
+                <div>{speechText}</div>
+              </>
+            ) : (
+              'Ask me anything about our services...'
+            )}
+          </div>
+
+          {/* Property cards */}
+          {properties.length > 0 && (
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', flexShrink: 1 }}>
+              {properties.map((p, i) => (
+                <a
+                  key={i}
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    textDecoration: 'none',
+                    cursor: 'pointer',
+                    padding: '8px 32px 8px 8px',
+                  }}
+                >
+                  {p.image ? (
+                    <img
+                      src={p.image}
+                      alt={p.title}
+                      style={{
+                        width: '54px',
+                        height: '54px',
+                        objectFit: 'cover',
+                        borderRadius: '6px',
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '54px', height: '54px', borderRadius: '6px', flexShrink: 0,
+                      background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="#52525b"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#f4f4f5', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
+                    <div style={{ fontSize: '0.65rem', color: '#71717a', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {[p.beds && Number(p.beds) > 0 ? `${p.beds} bed` : null, p.price].filter(Boolean).join(' · ')}
+                    </div>
+                    <div style={{ fontSize: '0.63rem', color: '#52525b', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.location}</div>
+                    <div style={{ fontSize: '0.63rem', color: '#0df259', marginTop: '3px', fontWeight: 500 }}>View listing →</div>
+                  </div>
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissProperty(i); }}
+                    style={{
+                      position: 'absolute', top: '6px', right: '6px',
+                      width: '18px', height: '18px', borderRadius: '50%',
+                      background: '#3f3f46', border: 'none', color: '#a1a1aa',
+                      cursor: 'pointer', fontSize: '9px', fontWeight: 'bold',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      lineHeight: 1, flexShrink: 0,
+                    }}
+                  >✕</button>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mic button */}
+      <button
+        onClick={handleMicClick}
+        disabled={status === 'connecting'}
+        title={isConnected ? undefined : 'Talk to Yhen'}
+        style={{
+          width: '60px',
+          height: '60px',
+          borderRadius: '50%',
+          border: 'none',
+          cursor: status === 'connecting' ? 'wait' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.3s ease',
+          background: status === 'listening' ? '#0df259'
+            : status === 'speaking' ? '#22c55e'
+            : 'rgba(20,20,22,0.9)',
+          color: status === 'listening' || status === 'speaking' ? '#09090b' : '#a1a1aa',
+          boxShadow: status === 'listening' ? '0 0 24px rgba(234,179,8,0.4)'
+            : status === 'speaking' ? '0 0 24px rgba(34,197,94,0.4)'
+            : '0 4px 20px rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.93V20H9v2h6v-2h-2v-2.07A7 7 0 0 0 19 11h-2z"/>
+        </svg>
+      </button>
+    </div>
+  );
+};
