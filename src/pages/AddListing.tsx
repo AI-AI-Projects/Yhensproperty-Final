@@ -462,7 +462,7 @@ const AddListing: React.FC<AddListingProps> = ({ onAdd, isEdit }) => {
   const isCommercial = formData.type === PropertyType.Commercial;
   const isWarehouse = formData.type === PropertyType.Warehouse;
   const isCondo = formData.type === PropertyType.Condo || formData.type === PropertyType.Apartment;
-  const isHotelRoom = formData.type === PropertyType.HotelRoom;
+  const isCondotel = formData.type === PropertyType.Condotel;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 relative">
@@ -652,7 +652,7 @@ const AddListing: React.FC<AddListingProps> = ({ onAdd, isEdit }) => {
                   </div>
                 </div>
 
-                {(isCondo || isHotelRoom) && (
+                {(isCondo || isCondotel) && (
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Floor Number <span className="text-red-500">*</span></label>
                     <input name="floor" value={formData.floor || ''} onChange={handleChange} className="w-full bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-primary focus:border-primary transition-all" placeholder="e.g., 15" type="number" min="1" required />

@@ -913,7 +913,7 @@ const Home: React.FC<HomeProps> = ({ properties, isLoading }) => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {[
-            { slug: 'buy-condos', icon: 'apartment', label: 'Buy Condo/\nHotel Rooms', img: '/Image/the_rise_manila_1.webp' },
+            { slug: 'buy-condos', icon: 'apartment', label: 'Buy Condos &\nCondotels', img: '/Image/the_rise_manila_1.webp' },
             { slug: 'buy-houses', icon: 'home', label: 'Buy Houses', img: '/Image/fancy_house_2_manila.webp' },
             { slug: 'buy-land', icon: 'landscape', label: 'Buy Land Plots', img: '/Image/Rice_field_land_small_size_2.webp' },
             { slug: 'rent', icon: 'vpn_key', label: 'Rent Condos, Houses, Land & Commercial', img: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800' }

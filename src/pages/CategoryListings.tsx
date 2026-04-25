@@ -28,8 +28,8 @@ const CATEGORY_MAP: Record<string, { title: string; types?: PropertyType[]; list
   },
   // Specific Buy Categories
   'buy-condos': {
-    title: 'Condos/Hotel Rooms for Sale',
-    types: [PropertyType.Condo, PropertyType.Apartment, PropertyType.HotelRoom],
+    title: 'Condos & Condotels for Sale',
+    types: [PropertyType.Condo, PropertyType.Apartment, PropertyType.Condotel],
     listingType: 'sale'
   },
   'buy-houses': {
@@ -49,8 +49,8 @@ const CATEGORY_MAP: Record<string, { title: string; types?: PropertyType[]; list
   },
   // Specific Rent Categories
   'rent-condos': {
-    title: 'Condos/Hotel Rooms for Rent',
-    types: [PropertyType.Condo, PropertyType.Apartment, PropertyType.HotelRoom],
+    title: 'Condos & Condotels for Rent',
+    types: [PropertyType.Condo, PropertyType.Apartment, PropertyType.Condotel],
     listingType: 'rent'
   },
   'rent-houses': {
@@ -140,10 +140,14 @@ const CategoryListings: React.FC<CategoryListingsProps> = ({ properties }) => {
   });
 
   useEffect(() => {
+    const normalizeCount = (val: string) => {
+      if (!val) return '';
+      return parseInt(val) >= 5 ? '5+' : val;
+    };
     const minPrice = searchParams.get('minPrice') || '';
     const maxPrice = searchParams.get('maxPrice') || '';
-    const beds = searchParams.get('beds') || searchParams.get('bedrooms') || '';
-    const baths = searchParams.get('baths') || searchParams.get('bathrooms') || '';
+    const beds = normalizeCount(searchParams.get('beds') || searchParams.get('bedrooms') || '');
+    const baths = normalizeCount(searchParams.get('baths') || searchParams.get('bathrooms') || '');
     const location = searchParams.get('location') || '';
     const type = searchParams.get('type') || CATEGORY_PRIMARY_TYPE[category?.toLowerCase() ?? ''] || '';
     const fromUrl = { minPrice, maxPrice, beds, baths, location, type };

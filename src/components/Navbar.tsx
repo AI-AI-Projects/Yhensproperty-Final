@@ -50,7 +50,7 @@ const Navbar: React.FC = () => {
               <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden py-2 p-1.5 ring-1 ring-black/5">
                 <Link to="/category/buy-condos" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 group/item transition-colors" onClick={() => setIsBuyOpen(false)}>
                   <div className="bg-primary/10 p-2 rounded-lg text-primary group-hover/item:bg-primary group-hover/item:text-zinc-900 transition-colors"><span className="material-icons text-sm">apartment</span></div>
-                  <span className="text-sm font-semibold dark:text-zinc-300">Buy Condos/Hotel Rooms</span>
+                  <span className="text-sm font-semibold dark:text-zinc-300">Buy Condos & Condotels</span>
                 </Link>
                 <Link to="/category/buy-houses" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 group/item transition-colors" onClick={() => setIsBuyOpen(false)}>
                   <div className="bg-primary/10 p-2 rounded-lg text-primary group-hover/item:bg-primary group-hover/item:text-zinc-900 transition-colors"><span className="material-icons text-sm">home</span></div>
@@ -197,7 +197,7 @@ const Navbar: React.FC = () => {
             <div className={`overflow-hidden transition-all duration-200 ${isBuyOpen ? 'max-h-64' : 'max-h-0'}`}>
               <div className="pl-4 space-y-1 mt-1">
                 <Link to="/category/buy-condos" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800" onClick={() => setIsMobileMenuOpen(false)}>
-                  <span className="material-icons text-sm text-primary">apartment</span><span className="text-sm">Buy Condos/Hotel Rooms</span>
+                  <span className="material-icons text-sm text-primary">apartment</span><span className="text-sm">Buy Condos & Condotels</span>
                 </Link>
                 <Link to="/category/buy-houses" className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800" onClick={() => setIsMobileMenuOpen(false)}>
                   <span className="material-icons text-sm text-primary">home</span><span className="text-sm">Buy Houses/Villas</span>

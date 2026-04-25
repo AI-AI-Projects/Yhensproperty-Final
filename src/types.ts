@@ -7,7 +7,7 @@ export enum PropertyType {
   Villa = 'Villa',
   Commercial = 'Commercial',
   Warehouse = 'Warehouse',
-  HotelRoom = 'Hotel Room'
+  Condotel = 'Condotel'
 }
 
 export interface PropertyListing {
