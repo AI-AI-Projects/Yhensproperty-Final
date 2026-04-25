@@ -87,6 +87,7 @@ async function buildPageContext(pathname: string): Promise<string> {
 }
 
 export const VoiceWidget: React.FC = () => {
+  if (!import.meta.env.DEV) return null;
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -95,6 +96,7 @@ export const VoiceWidget: React.FC = () => {
   const [speechText, setSpeechText] = useState('');
   const [speaker, setSpeaker] = useState<'yhen' | 'user' | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [textInput, setTextInput] = useState('');
 
   const wsRef = useRef<WebSocket | null>(null);
   const pathnameRef = useRef(location.pathname);
@@ -268,6 +270,15 @@ export const VoiceWidget: React.FC = () => {
 
   const toggleMute = () => setIsMuted(m => !m);
 
+  const sendTextMessage = () => {
+    const msg = textInput.trim();
+    if (!msg || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({ type: 'text', data: msg }));
+    setSpeaker('user');
+    setSpeechText(msg);
+    setTextInput('');
+  };
+
   const dismissProperty = (index: number) => {
     setProperties(prev => prev.filter((_, i) => i !== index));
   };
@@ -387,6 +398,50 @@ export const VoiceWidget: React.FC = () => {
               'Ask me anything about our services...'
             )}
           </div>
+
+          {/* Text input */}
+          {isConnected && (
+            <div style={{
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+              padding: '8px 10px',
+              display: 'flex',
+              gap: '6px',
+              alignItems: 'center',
+            }}>
+              <input
+                type="text"
+                value={textInput}
+                onChange={e => setTextInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendTextMessage()}
+                placeholder="Type a message..."
+                style={{
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '20px',
+                  padding: '7px 12px',
+                  fontSize: '0.8rem',
+                  color: '#f4f4f5',
+                  outline: 'none',
+                }}
+              />
+              <button
+                onClick={sendTextMessage}
+                disabled={!textInput.trim()}
+                style={{
+                  width: '32px', height: '32px', borderRadius: '50%',
+                  background: textInput.trim() ? '#0df259' : 'rgba(255,255,255,0.07)',
+                  border: 'none', cursor: textInput.trim() ? 'pointer' : 'default',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, transition: 'background 0.2s',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={textInput.trim() ? '#09090b' : '#52525b'}>
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+              </button>
+            </div>
+          )}
 
           {/* Property cards */}
           {properties.length > 0 && (
