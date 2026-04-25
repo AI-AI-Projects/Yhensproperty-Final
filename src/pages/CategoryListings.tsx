@@ -146,14 +146,16 @@ const CategoryListings: React.FC<CategoryListingsProps> = ({ properties }) => {
     };
     const minPrice = searchParams.get('minPrice') || '';
     const maxPrice = searchParams.get('maxPrice') || '';
-    const beds = normalizeCount(searchParams.get('beds') || searchParams.get('bedrooms') || '');
+    const propertyTypeParam = searchParams.get('property_type') || '';
+    const isStudioParam = propertyTypeParam === 'studio';
+    const beds = isStudioParam ? '0' : normalizeCount(searchParams.get('beds') || searchParams.get('bedrooms') || '');
     const baths = normalizeCount(searchParams.get('baths') || searchParams.get('bathrooms') || '');
     const location = searchParams.get('location') || '';
     const type = searchParams.get('type') || CATEGORY_PRIMARY_TYPE[category?.toLowerCase() ?? ''] || '';
     const fromUrl = { minPrice, maxPrice, beds, baths, location, type };
     setSearchFilters(prev => ({ ...prev, ...fromUrl }));
     setAppliedFilters(prev => ({ ...prev, ...fromUrl }));
-  }, [searchParams.toString()]);
+  }, [searchParams.toString(), category]);
 
   useEffect(() => {
     const loadAmenities = async () => {
@@ -200,7 +202,6 @@ const CategoryListings: React.FC<CategoryListingsProps> = ({ properties }) => {
       ? properties.filter(p => {
           if (p.status !== 'active' && p.status !== 'draft') return false;
           if (categoryConfig.listingType && p.listingType !== categoryConfig.listingType) return false;
-          if (categoryConfig.types && !categoryConfig.types.includes(p.type)) return false;
           if (categoryConfig.locationKeywords) {
             const searchable = `${p.city} ${p.barangay} ${p.address} ${p.title}`.toLowerCase();
             if (!categoryConfig.locationKeywords.some(kw => searchable.includes(kw))) return false;
