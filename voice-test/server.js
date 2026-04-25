@@ -29,6 +29,12 @@ function applyFilters(q, { bedrooms, bathrooms, listing_type, location, min_pric
     if (property_type) {
         if (property_type === 'studio') {
             q = q.eq('beds', 0).ilike('type', '%condo%');
+        } else if (property_type === 'condotel') {
+            q = q.ilike('type', 'condotel');
+        } else if (property_type === 'house') {
+            q = q.or('type.ilike.%house%,type.ilike.%villa%');
+        } else if (property_type === 'villa') {
+            q = q.ilike('type', 'villa');
         } else {
             q = q.ilike('type', property_type);
         }
@@ -172,8 +178,8 @@ const tools = [{
                 },
                 property_type: {
                     type: 'STRING',
-                    description: 'Type of property: studio, condo, house, land, or commercial. Use "studio" when user asks for studios. Use null if not specified.',
-                    enum: ['studio', 'condo', 'house', 'land', 'commercial']
+                    description: 'Type of property. Use "studio" for studios, "condo" for condos/apartments, "condotel" for condotels, "house" for houses AND villas combined (use this when user just says "houses"), "villa" for villas only (use when user specifically asks for villas), "land" for land, "commercial" for commercial, "warehouse" for warehouses. Use null if not specified.',
+                    enum: ['studio', 'condo', 'condotel', 'apartment', 'house', 'villa', 'land', 'commercial', 'warehouse']
                 }
             },
             required: []
@@ -206,9 +212,9 @@ WEBSITE KNOWLEDGE:
 
 NAVIGATION RULE: If the user DIRECTLY asks to go somewhere ("take me to contact", "go to the guides page", "open the inventory") — call navigate_to immediately, no confirmation needed. If YOU are the one suggesting navigation because it might help them (e.g. they asked for the contact number and you think the page might help) — then ask first: "Would you like me to take you there?" After navigating, say something very short — "Done!", "There you go!", or "Got it!" — never describe where you're going because the page changes instantly.
 
-PROPERTY NAVIGATION: When a user asks to browse a single property type (e.g. "show me all condos" / "what houses do you have"), after searching offer them a choice: "I can send you the links, or take you to the condos page — which do you prefer?" If they want the page, call navigate_to with the matching category path. If the search had any filters (price, beds, bathrooms, location), append them as URL query parameters so the page loads pre-filtered. Parameters: minPrice, maxPrice, bedrooms, bathrooms, location. Example: if they searched for 3-bed 2-bath houses under ₱8M in Makati, navigate to /category/buy-houses?bedrooms=3&bathrooms=2&maxPrice=8000000&location=Makati. If no filters were used, just use the plain path. If they want links, call show_listings. For mixed types or specific searches that span multiple categories, just offer links as usual.
+PROPERTY NAVIGATION: When a user asks to browse a single property type (e.g. "show me all condos" / "what houses do you have"), after searching offer them a choice: "I can send you the links, or take you to the condos page — which do you prefer?" If they want the page, call navigate_to with the matching category path. If the search had any filters (price, beds, bathrooms, location), append them as URL query parameters so the page loads pre-filtered. Parameters: minPrice, maxPrice, bedrooms, bathrooms, location, type. Example: if they searched for 3-bed 2-bath houses under ₱8M in Makati, navigate to /category/buy-houses?bedrooms=3&bathrooms=2&maxPrice=8000000&location=Makati. For condotels, navigate to /category/buy-condos?type=Condotel (or rent-condos for rentals). For studios, navigate to /category/buy-condos?bedrooms=0 — do NOT use property_type=studio in the URL. If no filters were used, just use the plain path. If they want links, call show_listings. For mixed types or specific searches that span multiple categories, just offer links as usual.
 
-REFINING ON CATEGORY PAGE: If the user is already on a category page (you will know this from the [PAGE:] context) and asks to refine or change the search (e.g. "show me ones with 4 bathrooms" or "only under 5 million"), do NOT ask "links or page?" — just call navigate_to immediately with the updated URL params. They are already on the page, so just update it silently and say something brief like "Done!" or "Updated!".
+REFINING ON CATEGORY PAGE: If the user is already on a category page and asks to refine or change the search — including switching property type (e.g. "show me condos instead", "what about houses?") — do NOT run search_properties and do NOT ask "links or page?". Just call navigate_to immediately. If they switch type, navigate to the correct category path (e.g. user on buy-houses asks for condos → navigate to /category/buy-condos). If they refine price, beds or bathrooms on the current page, navigate to the same category with updated URL params. Always say something brief like "Done!" after.
 
 PROPERTY SEARCH RULE (follow this exactly, every time):
 Step 1 — When a user asks about properties, call search_properties immediately.

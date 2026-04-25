@@ -224,7 +224,13 @@ const CategoryListings: React.FC<CategoryListingsProps> = ({ properties }) => {
         if (!searchableText.includes(keywords)) return false;
       }
 
-      if (appliedFilters.type && p.type !== appliedFilters.type) return false;
+      if (appliedFilters.type) {
+        if (appliedFilters.type === 'House') {
+          if (!['House', 'Villa'].includes(p.type)) return false;
+        } else {
+          if (p.type !== appliedFilters.type) return false;
+        }
+      }
       if (appliedFilters.beds) {
         if (appliedFilters.beds === '5+') {
           if (p.beds < 5) return false;
