@@ -194,6 +194,7 @@ export const VoiceWidget: React.FC = () => {
       setProperties(msg.data as Property[]);
     } else if (msg.type === 'navigate') {
       navigate(msg.path as string);
+      if (window.innerWidth <= 768) setMinimized(true);
     } else if (msg.type === 'whatsapp') {
       const text = encodeURIComponent(msg.message as string);
       window.open(`https://wa.me/639467543767?text=${text}`, '_blank');
