@@ -1,7 +1,6 @@
 require('dotenv').config({ path: '../.env' });
 const express = require('express');
 const http = require('http');
-const path = require('path');
 const { WebSocketServer } = require('ws');
 const { GoogleGenAI } = require('@google/genai');
 const { createClient } = require('@supabase/supabase-js');
@@ -14,9 +13,6 @@ const PORT = 3001;
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
 
 function applyFilters(q, { bedrooms, bathrooms, listing_type, location, min_price, max_price, property_type }) {
     q = q.eq('status', 'active');
@@ -32,7 +28,7 @@ function applyFilters(q, { bedrooms, bathrooms, listing_type, location, min_pric
         } else if (property_type === 'condotel') {
             q = q.ilike('type', 'condotel');
         } else if (property_type === 'house') {
-            q = q.or('type.ilike.%house%,type.ilike.%villa%');
+            q = q.or('type.ilike.%house%,type.ilike.%villa%').not('type', 'ilike', '%warehouse%');
         } else if (property_type === 'villa') {
             q = q.ilike('type', 'villa');
         } else {
@@ -336,15 +332,73 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
         console.log('🚀 Connected to Gemini Live API!');
         let isSpeakingThisTurn = false;
         let pendingProperties = null;
+
+        // Session limits
+        const MAX_SESSION_MS = 15 * 60 * 1000;   // 15 minutes total
+        const INACTIVITY_MS = 3 * 60 * 1000;      // 3 minutes silence
+        const WARNING_BEFORE_MS = 60 * 1000;       // warn 1 min before max session ends
+        const INACTIVITY_WARNING_MS = 30 * 1000;   // warn 30s before inactivity cutoff
+
+        let inactivityTimer = null;
+        let inactivityWarningTimer = null;
+        let sessionTimer = null;
+        let sessionWarningTimer = null;
+        let sessionClosed = false;
+
+        const closeSession = (reason) => {
+            if (sessionClosed) return;
+            sessionClosed = true;
+            clearTimeout(inactivityTimer);
+            clearTimeout(inactivityWarningTimer);
+            clearTimeout(sessionTimer);
+            clearTimeout(sessionWarningTimer);
+            console.log(`🔴 Session closed: ${reason}`);
+            if (session) session.close();
+            if (ws.readyState === ws.OPEN) ws.close();
+        };
+
+        const sendNotification = (text) => {
+            if (ws.readyState === ws.OPEN) {
+                ws.send(JSON.stringify({ type: 'notification', data: text }));
+            }
+            session.sendRealtimeInput({ text: `Say this out loud to the user, word for word: "${text}"` });
+        };
+
+        const resetInactivityTimer = () => {
+            clearTimeout(inactivityTimer);
+            clearTimeout(inactivityWarningTimer);
+            inactivityWarningTimer = setTimeout(() => {
+                sendNotification("Just checking — are you still there? I'll close in 30 seconds if not.");
+            }, INACTIVITY_MS - INACTIVITY_WARNING_MS);
+            inactivityTimer = setTimeout(() => {
+                sendNotification("Session ended due to inactivity. Click the mic to start a new conversation.");
+                setTimeout(() => closeSession('inactivity'), 3000);
+            }, INACTIVITY_MS);
+        };
+
+        // Session max length warning and cutoff
+        sessionWarningTimer = setTimeout(() => {
+            sendNotification("Just to let you know, we're approaching the session limit. I'll be closing in about one minute.");
+        }, MAX_SESSION_MS - WARNING_BEFORE_MS);
+
+        sessionTimer = setTimeout(() => {
+            sendNotification("We've reached the maximum session length. Thank you for chatting — click the mic anytime to start a new session.");
+            setTimeout(() => closeSession('max session length'), 3000);
+        }, MAX_SESSION_MS);
+
+        resetInactivityTimer();
+
         session.sendRealtimeInput({ text: 'Greet the user with exactly this, word for word: "Hi, I\'m Yhen. I can help you find listings, navigate the website, and answer questions about Philippines real estate and general Philippines information. You can also speak to me in any language. How can I help?"' });
 
         ws.on('message', (data) => {
             const msg = JSON.parse(data.toString());
             if (msg.type === 'realtimeInput' && msg.data) {
+                resetInactivityTimer();
                 session.sendRealtimeInput({
                     audio: { data: msg.data, mimeType: "audio/pcm;rate=16000" }
                 });
             } else if (msg.type === 'text') {
+                resetInactivityTimer();
                 session.sendRealtimeInput({ text: msg.data });
             } else if (msg.type === 'pageContext') {
                 session.sendRealtimeInput({ text: msg.data });
@@ -353,7 +407,7 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
 
         ws.on('close', () => {
             console.log('🔴 Browser disconnected');
-            if (session) session.close();
+            closeSession('browser disconnected');
         });
 
     } catch (error) {
