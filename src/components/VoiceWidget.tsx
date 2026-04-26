@@ -325,7 +325,7 @@ export const VoiceWidget: React.FC = () => {
         ...(isMobile && panelOpen
           ? { inset: 0, alignItems: 'stretch' }
           : isMobile
-            ? { bottom: '140px', right: '16px', alignItems: 'flex-end' }
+            ? { bottom: '210px', right: '16px', alignItems: 'flex-end' }
             : { bottom: '24px', left: '24px', alignItems: 'flex-start' }),
         display: 'flex',
         flexDirection: 'column',
