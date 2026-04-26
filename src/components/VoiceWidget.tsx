@@ -87,7 +87,6 @@ async function buildPageContext(pathname: string): Promise<string> {
 }
 
 export const VoiceWidget: React.FC = () => {
-  if (!import.meta.env.DEV) return null;
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -229,7 +228,7 @@ export const VoiceWidget: React.FC = () => {
         audio: { echoCancellation: true, noiseSuppression: true }
       });
       mediaStreamRef.current = stream;
-      const ws = new WebSocket('ws://localhost:3001');
+      const ws = new WebSocket('wss://cooperative-vibrancy-production-6e56.up.railway.app');
       wsRef.current = ws;
 
       ws.onopen = () => {
