@@ -44,6 +44,7 @@ interface PropertyDetail {
   beds: number;
   baths: number;
   sqft: number | null;
+  lot_area: number | null;
   city: string;
   barangay: string | null;
   condo_name: string | null;
@@ -51,6 +52,7 @@ interface PropertyDetail {
   type: string;
   listing_type: string;
   description: string | null;
+  amenities: string[] | null;
   images: string[];
   featured_image_index: number | null;
   url: string;
@@ -386,7 +388,7 @@ export const VoiceWidget: React.FC = () => {
     }
     const { data } = await supabase
       .from('properties')
-      .select('title, slug, price, beds, baths, sqft, city, barangay, condo_name, address, type, listing_type, description, images, featured_image_index')
+      .select('title, slug, price, beds, baths, sqft, lot_area, city, barangay, condo_name, address, type, listing_type, description, amenities, images, featured_image_index')
       .eq('slug', slug)
       .single();
     if (data) {
@@ -771,21 +773,38 @@ export const VoiceWidget: React.FC = () => {
         )}
       </div>
 
+      {/* Property detail modal — backdrop */}
+      {(modalLoading || modalProperty) && (
+        <div
+          onClick={() => { setModalProperty(null); setModalLoading(false); }}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            zIndex: 10000,
+          }}
+        />
+      )}
+
       {/* Property detail modal */}
       {(modalLoading || modalProperty) && (
         <div style={{
           position: 'fixed',
           ...(isMobile
             ? { inset: 0 }
-            : { top: '16px', bottom: '16px', left: '16px', right: '420px' }),
+            : {
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 'min(780px, 90vw)',
+                maxHeight: '90vh',
+              }),
           background: '#0f0f10',
           borderRadius: isMobile ? 0 : '16px',
           border: '1px solid rgba(255,255,255,0.1)',
           display: 'flex',
           flexDirection: 'column',
-          zIndex: 9998,
+          zIndex: 10001,
           overflow: 'hidden',
-          boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
         }}>
           {/* Modal header */}
           <div style={{
@@ -794,7 +813,9 @@ export const VoiceWidget: React.FC = () => {
           }}>
             <span style={{ fontSize: '0.75rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Property Details</span>
             <button onClick={() => { setModalProperty(null); setModalLoading(false); }} style={{
-              background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1, padding: '2px 6px',
+              background: 'rgba(255,255,255,0.07)', border: 'none', color: '#a1a1aa', cursor: 'pointer',
+              borderRadius: '50%', width: '28px', height: '28px', fontSize: '1rem', lineHeight: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>✕</button>
           </div>
 
@@ -803,25 +824,31 @@ export const VoiceWidget: React.FC = () => {
               Loading...
             </div>
           ) : modalProperty && (
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0' }}>
 
               {/* Photo carousel */}
               {modalProperty.images && modalProperty.images.length > 0 && (
-                <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '16/9', background: '#1a1a1c', flexShrink: 0 }}>
-                  <img src={modalProperty.images[modalPhotoIndex]} alt={modalProperty.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ position: 'relative', background: '#111', flexShrink: 0, height: '240px' }}>
+                  <img
+                    src={modalProperty.images[modalPhotoIndex]}
+                    alt={modalProperty.title}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
                   {modalProperty.images.length > 1 && (
                     <>
-                      <button onClick={() => setModalPhotoIndex(i => Math.max(0, i - 1))} style={{
+                      <button onClick={(e) => { e.stopPropagation(); setModalPhotoIndex(i => Math.max(0, i - 1)); }} style={{
                         position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)',
-                        background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', borderRadius: '50%',
-                        width: '32px', height: '32px', cursor: 'pointer', fontSize: '1rem', display: modalPhotoIndex === 0 ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.65)', border: 'none', color: '#fff', borderRadius: '50%',
+                        width: '34px', height: '34px', cursor: 'pointer', fontSize: '1.2rem',
+                        display: modalPhotoIndex === 0 ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>‹</button>
-                      <button onClick={() => setModalPhotoIndex(i => Math.min(modalProperty.images.length - 1, i + 1))} style={{
+                      <button onClick={(e) => { e.stopPropagation(); setModalPhotoIndex(i => Math.min(modalProperty.images.length - 1, i + 1)); }} style={{
                         position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
-                        background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', borderRadius: '50%',
-                        width: '32px', height: '32px', cursor: 'pointer', fontSize: '1rem', display: modalPhotoIndex === modalProperty.images.length - 1 ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.65)', border: 'none', color: '#fff', borderRadius: '50%',
+                        width: '34px', height: '34px', cursor: 'pointer', fontSize: '1.2rem',
+                        display: modalPhotoIndex === modalProperty.images.length - 1 ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>›</button>
-                      <div style={{ position: 'absolute', bottom: '8px', right: '10px', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '99px' }}>
+                      <div style={{ position: 'absolute', bottom: '8px', right: '10px', background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '99px' }}>
                         {modalPhotoIndex + 1} / {modalProperty.images.length}
                       </div>
                     </>
@@ -829,48 +856,127 @@ export const VoiceWidget: React.FC = () => {
                 </div>
               )}
 
-              {/* Title & price */}
-              <div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f4f4f5', lineHeight: 1.3, marginBottom: '6px' }}>{modalProperty.title}</div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0df259' }}>₱{Number(modalProperty.price).toLocaleString()}</div>
-              </div>
-
-              {/* Key details */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {modalProperty.beds > 0 && <span style={{ background: 'rgba(255,255,255,0.06)', color: '#d4d4d8', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem' }}>{modalProperty.beds} bed{modalProperty.beds !== 1 ? 's' : ''}</span>}
-                {modalProperty.baths > 0 && <span style={{ background: 'rgba(255,255,255,0.06)', color: '#d4d4d8', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem' }}>{modalProperty.baths} bath{modalProperty.baths !== 1 ? 's' : ''}</span>}
-                {modalProperty.sqft && <span style={{ background: 'rgba(255,255,255,0.06)', color: '#d4d4d8', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem' }}>{modalProperty.sqft} sqm</span>}
-                <span style={{ background: 'rgba(255,255,255,0.06)', color: '#d4d4d8', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem' }}>{modalProperty.type}</span>
-                <span style={{ background: 'rgba(255,255,255,0.06)', color: '#d4d4d8', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem' }}>{modalProperty.listing_type === 'sale' ? 'For Sale' : 'For Rent'}</span>
-              </div>
-
-              {/* Location */}
-              <div style={{ fontSize: '0.8rem', color: '#71717a' }}>
-                📍 {[modalProperty.condo_name, modalProperty.barangay, modalProperty.city].filter(Boolean).join(', ')}
-              </div>
-
-              {/* Description */}
-              {modalProperty.description && (
-                <div style={{ fontSize: '0.82rem', color: '#a1a1aa', lineHeight: 1.7 }}>
-                  {modalProperty.description}
+              {/* Thumbnail strip */}
+              {modalProperty.images && modalProperty.images.length > 1 && (
+                <div style={{ display: 'flex', gap: '4px', padding: '8px 16px', overflowX: 'auto', background: '#111', flexShrink: 0 }}>
+                  {modalProperty.images.slice(0, 10).map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt=""
+                      onClick={(e) => { e.stopPropagation(); setModalPhotoIndex(idx); }}
+                      style={{
+                        width: '52px', height: '40px', objectFit: 'cover', borderRadius: '4px',
+                        cursor: 'pointer', flexShrink: 0,
+                        opacity: modalPhotoIndex === idx ? 1 : 0.45,
+                        border: modalPhotoIndex === idx ? '2px solid #0df259' : '2px solid transparent',
+                        transition: 'opacity 0.15s, border-color 0.15s',
+                      }}
+                    />
+                  ))}
                 </div>
               )}
 
-              {/* WhatsApp button */}
-              <a
-                href={`https://wa.me/639467543767?text=${encodeURIComponent(`Hi Yhen, I'm interested in this property: ${modalProperty.title} — ${modalProperty.url}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  background: '#25D366', color: '#fff', borderRadius: '12px', padding: '12px',
-                  textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem', flexShrink: 0,
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                Enquire on WhatsApp
-              </a>
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
+                {/* Title & price */}
+                <div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f4f4f5', lineHeight: 1.3, marginBottom: '6px' }}>{modalProperty.title}</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0df259' }}>₱{Number(modalProperty.price).toLocaleString()}</div>
+                </div>
+
+                {/* Key stats row */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {modalProperty.beds > 0 && (
+                    <span style={{ background: 'rgba(255,255,255,0.06)', color: '#d4d4d8', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem' }}>
+                      {modalProperty.beds} bed{modalProperty.beds !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {modalProperty.baths > 0 && (
+                    <span style={{ background: 'rgba(255,255,255,0.06)', color: '#d4d4d8', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem' }}>
+                      {modalProperty.baths} bath{modalProperty.baths !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {modalProperty.sqft && (
+                    <span style={{ background: 'rgba(255,255,255,0.06)', color: '#d4d4d8', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem' }}>
+                      {modalProperty.sqft} sqm floor
+                    </span>
+                  )}
+                  {modalProperty.lot_area && (
+                    <span style={{ background: 'rgba(255,255,255,0.06)', color: '#d4d4d8', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem' }}>
+                      {modalProperty.lot_area} sqm lot
+                    </span>
+                  )}
+                  <span style={{ background: 'rgba(255,255,255,0.06)', color: '#d4d4d8', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem' }}>{modalProperty.type}</span>
+                  <span style={{ background: 'rgba(255,255,255,0.06)', color: '#d4d4d8', padding: '4px 10px', borderRadius: '99px', fontSize: '0.75rem' }}>
+                    {modalProperty.listing_type === 'sale' ? 'For Sale' : 'For Rent'}
+                  </span>
+                </div>
+
+                {/* Location */}
+                <div style={{ fontSize: '0.8rem', color: '#71717a' }}>
+                  📍 {[modalProperty.condo_name, modalProperty.barangay, modalProperty.city].filter(Boolean).join(', ')}
+                  {modalProperty.address && <div style={{ marginTop: '2px', fontSize: '0.75rem' }}>{modalProperty.address}</div>}
+                </div>
+
+                {/* Description */}
+                {modalProperty.description && (
+                  <div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: '6px' }}>About this property</div>
+                    <div style={{ fontSize: '0.82rem', color: '#a1a1aa', lineHeight: 1.75 }}>
+                      {modalProperty.description}
+                    </div>
+                  </div>
+                )}
+
+                {/* Amenities */}
+                {modalProperty.amenities && modalProperty.amenities.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: '8px' }}>Features & Amenities</div>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {modalProperty.amenities.map((a, idx) => (
+                        <span key={idx} style={{
+                          background: 'rgba(13,242,89,0.06)', border: '1px solid rgba(13,242,89,0.15)',
+                          color: '#a1a1aa', padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem',
+                        }}>{a}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '4px' }}>
+                  <a
+                    href={`https://wa.me/639467543767?text=${encodeURIComponent(`Hi Yhen, I'm interested in this property: ${modalProperty.title} — ${modalProperty.url}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      background: '#25D366', color: '#fff', borderRadius: '12px', padding: '12px',
+                      textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem',
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    Enquire on WhatsApp
+                  </a>
+                  <a
+                    href={modalProperty.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                      color: '#a1a1aa', borderRadius: '12px', padding: '10px',
+                      textDecoration: 'none', fontWeight: 600, fontSize: '0.82rem',
+                    }}
+                  >
+                    View full listing ↗
+                  </a>
+                </div>
+
+              </div>
             </div>
           )}
         </div>
