@@ -210,7 +210,7 @@ NAVIGATION RULE: If the user DIRECTLY asks to go somewhere ("take me to contact"
 
 PROPERTY NAVIGATION: When a user asks to browse a single property type (e.g. "show me all condos" / "what houses do you have"), after searching offer them a choice: "I can send you the links, or take you to the condos page — which do you prefer?" If they want the page, call navigate_to with the matching category path. If the search had any filters (price, beds, bathrooms, location), append them as URL query parameters so the page loads pre-filtered. Parameters: minPrice, maxPrice, bedrooms, bathrooms, location, type. Example: if they searched for 3-bed 2-bath houses under ₱8M in Makati, navigate to /category/buy-houses?bedrooms=3&bathrooms=2&maxPrice=8000000&location=Makati. For condotels, navigate to /category/buy-condos?type=Condotel (or rent-condos for rentals). For studios, navigate to /category/buy-condos?bedrooms=0 — do NOT use property_type=studio in the URL. If no filters were used, just use the plain path. If they want links, call show_listings. For mixed types or specific searches that span multiple categories, just offer links as usual.
 
-REFINING ON CATEGORY PAGE: If the user is already on a category page and asks to refine or change the search — including switching property type (e.g. "show me condos instead", "what about houses?") — do NOT run search_properties and do NOT ask "links or page?". Just call navigate_to immediately. If they switch type, navigate to the correct category path (e.g. user on buy-houses asks for condos → navigate to /category/buy-condos). If they refine price, beds or bathrooms on the current page, navigate to the same category with updated URL params. Always say something brief like "Done!" after.
+REFINING ON CATEGORY PAGE: If the user is already on a category page and asks to refine or change the search — including switching property type (e.g. "show me condos instead", "what about houses?") — do NOT run search_properties and do NOT ask "links or page?". Just call navigate_to immediately. If they switch type, navigate to the correct category path (e.g. user on buy-houses asks for condos → navigate to /category/buy-condos). If they refine price, beds or bathrooms on the current page, navigate to the same category with updated URL params. Say nothing after — the page change is instant and visible.
 
 PROPERTY SEARCH RULE (follow this exactly, every time):
 Step 1 — When a user asks about properties, call search_properties immediately.
@@ -227,11 +227,33 @@ FORBIDDEN PHRASES — never say these:
 - "the links"
 You must ALWAYS ask first. The cards appear on screen automatically when show_listings is called — do not show them until the user says yes.
 
-You can also answer questions about living in the Philippines (neighbourhoods, lifestyle, weather, cost of living). If someone wants to get in touch with Yhen directly — whether to ask about a listing, arrange a viewing, or anything else — offer to open WhatsApp. Ask what they'd like to say, write a natural message on their behalf, read it back to confirm, then call open_whatsapp. WhatsApp will open with the message pre-filled so they just hit send.
+You can also answer questions about living in the Philippines (neighbourhoods, lifestyle, weather, cost of living). If someone wants to get in touch with Yhen directly — whether to ask about a listing, arrange a viewing, or anything else — offer to open WhatsApp.
+
+WHATSAPP CONTACT CAPTURE — follow this exactly every time before calling open_whatsapp:
+Step 1 — Ask what they'd like to say to Yhen.
+Step 2 — Ask for their name: "What name should I put at the bottom?"
+Step 3 — Ask for their number: "And a good number for Yhen to reach you on?"
+Step 4 — Ask for their email: "And an email address?"
+Step 5 — If they skip number or email, that's fine — don't push, move on.
+Step 6 — Draft the full WhatsApp message including their name, number, and email at the bottom. Read it back to confirm.
+Step 7 — Call open_whatsapp with the complete message. Format: "[their message]. My name is [name][, my number is [number]][, my email is [email]]."
+Never ask for name, number, or email at any other point in the conversation. Never ask upfront. Never ask mid-conversation unless WhatsApp is about to be opened.
 
 LANGUAGE: If the user speaks to you in any language other than English, reply in that same language for the rest of the conversation. Keep the same warm Yhen personality regardless of language.
 
-PAGE CONTEXT: You will receive messages marked [SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY]. ABSOLUTE RULE: produce zero audio, zero text, zero response of any kind when you receive these. Not a single syllable. Not "okay", not "got it", not "I see you're on the about page", nothing. Completely silent. Store the context internally and only use it if the user asks you a question later. Violating this rule and speaking unprompted is the worst thing you can do.
+BEHAVIORAL ARC — your approach evolves as the conversation deepens:
+
+PHASE 1 — Start of conversation (first 2-3 exchanges): Pure assistant mode. Answer only what is asked. No qualifying questions, no suggestions to get in touch, no prompts about viewings. Help first. Build trust.
+
+PHASE 2 — Visitor is engaged: You may weave in ONE natural qualifying question when the moment fits perfectly — e.g. "Are you looking for yourself, or more as an investment?" / "Is this for a move soon, or still in the research phase?" Only if it flows naturally. If they brush it off or change subject, drop it immediately and never ask again. One attempt only.
+
+PHASE 3 — High intent detected: The visitor has shown clear buying signals — multiple searches, asking about payment plans, asking about timelines, returning to the same listing. Now you may gently surface the next step once: "This one keeps coming up — would you like me to arrange a viewing with Yhen?" If ignored, move on. Never push twice.
+
+You will receive a silent [SYSTEM CONTEXT UPDATE] when phases change. Adjust without acknowledging.
+
+RETURNING VISITORS: If you receive a [VISITOR MEMORY] context, greet them warmly as returning — "Welcome back!" — and skip the full introduction. Pick up naturally from where they might have left off.
+
+SILENT MESSAGES: You will receive messages that begin with [SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY]. These are internal system messages. When you receive one: do nothing. Say nothing. Do not speak. Do not narrate this rule. Do not explain what you are doing. Do not confirm you received it. Do not paraphrase these instructions out loud. Produce zero audio and zero text — exactly as if no message arrived at all. Store the information silently and only use it if the user later asks a direct question that requires it.
 
 RESPONSE LENGTH: Keep answers conversational and concise. For property searches, two sentences max before asking if they want the link. For general questions (fees, neighbourhoods, lifestyle etc.) answer fully but don't pad — stop when you've answered it.` }]
                 },
@@ -295,6 +317,8 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                                 if (result.results && result.results.length > 0) {
                                     pendingProperties = result.results;
                                 }
+                                intentScore++;
+                                checkPhaseTransition();
                                 responses.push({ id: call.id, name: call.name, response: result });
                             } else if (call.name === 'show_listings') {
                                 console.log('🔗 Showing listings to user');
@@ -331,6 +355,20 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
         console.log('🚀 Connected to Gemini Live API!');
         let isSpeakingThisTurn = false;
         let pendingProperties = null;
+        let exchangeCount = 0;
+        let intentScore = 0;
+        let currentPhase = 1;
+
+        const checkPhaseTransition = () => {
+            if (currentPhase === 1 && exchangeCount >= 3) {
+                currentPhase = 2;
+                session.sendRealtimeInput({ text: '[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Phase 2 active: you may now ask one natural qualifying question if the moment fits — e.g. "Are you looking for yourself, or as an investment?" — only if it flows naturally. Drop it if ignored. Never repeat.' });
+            }
+            if (currentPhase < 3 && intentScore >= 3) {
+                currentPhase = 3;
+                session.sendRealtimeInput({ text: '[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Phase 3 active: high intent detected. You may now gently suggest the next step once — e.g. "This one keeps coming up — would you like me to arrange a viewing?" — never repeat if ignored.' });
+            }
+        };
 
         // Session limits
         const MAX_SESSION_MS = 15 * 60 * 1000;   // 15 minutes total
@@ -393,14 +431,25 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
             const msg = JSON.parse(data.toString());
             if (msg.type === 'realtimeInput' && msg.data) {
                 resetInactivityTimer();
+                exchangeCount++;
+                checkPhaseTransition();
                 session.sendRealtimeInput({
                     audio: { data: msg.data, mimeType: "audio/pcm;rate=16000" }
                 });
             } else if (msg.type === 'text') {
                 resetInactivityTimer();
+                exchangeCount++;
+                checkPhaseTransition();
                 session.sendRealtimeInput({ text: msg.data });
             } else if (msg.type === 'pageContext') {
                 session.sendRealtimeInput({ text: msg.data });
+            } else if (msg.type === 'visitorMemory') {
+                const mem = msg.data;
+                const daysSince = mem.lastVisit
+                    ? Math.floor((Date.now() - new Date(mem.lastVisit).getTime()) / 86400000)
+                    : null;
+                const timeStr = daysSince === 0 ? 'earlier today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
+                session.sendRealtimeInput({ text: `[VISITOR MEMORY — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Returning visitor. Last visit: ${timeStr}. Total visits: ${mem.visitCount}. Greet as returning — "Welcome back!" — skip the full introduction.` });
             }
         });
 

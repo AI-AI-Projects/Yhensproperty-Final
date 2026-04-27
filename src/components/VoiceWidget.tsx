@@ -116,6 +116,7 @@ export const VoiceWidget: React.FC = () => {
   const activeCountRef = useRef(0);
   const nextPlayTimeRef = useRef(0);
   const pendingTurnCompleteRef = useRef(false);
+  const suppressNextPageContextRef = useRef(false);
   const isAISpeakingRef = useRef(false);
   const yhenBufferRef = useRef('');
   const isMutedRef = useRef(false);
@@ -191,12 +192,32 @@ export const VoiceWidget: React.FC = () => {
       setSpeaker('yhen');
       setSpeechText(msg.data as string);
     } else if (msg.type === 'properties') {
-      setProperties(msg.data as Property[]);
+      const incoming = msg.data as Property[];
+      setProperties(incoming);
+      // Log properties shown to session
+      const raw = localStorage.getItem('yhen_session');
+      if (raw) {
+        const session = JSON.parse(raw);
+        const newUrls = incoming.map(p => p.url).filter(url => !session.propertiesShown.includes(url));
+        session.propertiesShown = [...session.propertiesShown, ...newUrls];
+        session.searches.push({ time: new Date().toISOString(), count: incoming.length });
+        session.lastActivity = new Date().toISOString();
+        localStorage.setItem('yhen_session', JSON.stringify(session));
+      }
     } else if (msg.type === 'navigate') {
+      suppressNextPageContextRef.current = true;
       navigate(msg.path as string);
       if (window.innerWidth <= 768) setMinimized(true);
     } else if (msg.type === 'whatsapp') {
       const text = encodeURIComponent(msg.message as string);
+      // Mark WhatsApp opened in session
+      const raw = localStorage.getItem('yhen_session');
+      if (raw) {
+        const session = JSON.parse(raw);
+        session.whatsappOpened = true;
+        session.lastActivity = new Date().toISOString();
+        localStorage.setItem('yhen_session', JSON.stringify(session));
+      }
       window.open(`https://wa.me/639467543767?text=${text}`, '_blank');
     }
   }, [stopAllAudio, playAudio]);
@@ -234,6 +255,41 @@ export const VoiceWidget: React.FC = () => {
 
       ws.onopen = () => {
         setStatus('listening');
+        // Send returning visitor memory if exists
+        const rawMemory = localStorage.getItem('yhen_visitor');
+        if (rawMemory) {
+          ws.send(JSON.stringify({ type: 'visitorMemory', data: JSON.parse(rawMemory) }));
+        }
+        // Update visit record
+        const parsed = rawMemory ? JSON.parse(rawMemory) : {};
+        localStorage.setItem('yhen_visitor', JSON.stringify({
+          lastVisit: new Date().toISOString(),
+          visitCount: (parsed.visitCount || 0) + 1,
+        }));
+        // Start a new session log
+        const sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        localStorage.setItem('yhen_session', JSON.stringify({
+          sessionId,
+          startTime: new Date().toISOString(),
+          searches: [],
+          propertiesShown: [],
+          whatsappOpened: false,
+          name: null,
+          phone: null,
+          email: null,
+        }));
+        // Intercept any static WhatsApp links on the page
+        document.querySelectorAll<HTMLAnchorElement>('a[href*="wa.me"], a[href*="api.whatsapp.com"]').forEach(link => {
+          link.addEventListener('click', () => {
+            const raw = localStorage.getItem('yhen_session');
+            if (!raw) return;
+            const session = JSON.parse(raw);
+            if (session.searches.length === 0) return; // no AI interaction, nothing to log
+            session.whatsappOpened = true;
+            session.lastActivity = new Date().toISOString();
+            localStorage.setItem('yhen_session', JSON.stringify(session));
+          });
+        });
         buildPageContext(pathnameRef.current).then(ctx => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'pageContext', data: ctx }));
@@ -266,6 +322,10 @@ export const VoiceWidget: React.FC = () => {
   useEffect(() => {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (suppressNextPageContextRef.current) {
+      suppressNextPageContextRef.current = false;
+      return;
+    }
     buildPageContext(location.pathname).then(ctx => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'pageContext', data: ctx }));
@@ -504,52 +564,78 @@ export const VoiceWidget: React.FC = () => {
                   {properties.length} {properties.length === 1 ? 'property' : 'properties'} found
                 </div>
                 {properties.map((p, i) => (
-                  <a
-                    key={i}
-                    href={p.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: '10px',
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                      transition: 'border-color 0.2s',
-                      padding: '8px',
-                      flexShrink: 0,
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = '#0df259')}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
-                  >
-                    {p.image ? (
-                      <img src={p.image} alt={p.title} style={{
-                        width: '80px', height: '80px', objectFit: 'cover',
-                        borderRadius: '8px', flexShrink: 0,
-                      }} />
-                    ) : (
-                      <div style={{
-                        width: '80px', height: '80px', borderRadius: '8px', flexShrink: 0,
-                        background: 'rgba(255,255,255,0.06)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="#52525b"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                  <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+                    <a
+                      href={p.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: '10px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                        transition: 'border-color 0.2s',
+                        padding: '8px',
+                        paddingRight: '28px',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = '#0df259')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+                    >
+                      {p.image ? (
+                        <img src={p.image} alt={p.title} style={{
+                          width: '80px', height: '80px', objectFit: 'cover',
+                          borderRadius: '8px', flexShrink: 0,
+                        }} />
+                      ) : (
+                        <div style={{
+                          width: '80px', height: '80px', borderRadius: '8px', flexShrink: 0,
+                          background: 'rgba(255,255,255,0.06)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <svg width="28" height="28" viewBox="0 0 24 24" fill="#52525b"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f4f4f5', lineHeight: 1.3, marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#0df259', fontWeight: 600, marginBottom: '2px' }}>{p.price}</div>
+                        <div style={{ fontSize: '0.7rem', color: '#71717a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {[p.beds && Number(p.beds) > 0 ? `${p.beds} bed` : null, p.location].filter(Boolean).join(' · ')}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: '#0df259', marginTop: '4px', fontWeight: 500 }}>View listing →</div>
                       </div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f4f4f5', lineHeight: 1.3, marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
-                      <div style={{ fontSize: '0.78rem', color: '#0df259', fontWeight: 600, marginBottom: '2px' }}>{p.price}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#71717a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {[p.beds && Number(p.beds) > 0 ? `${p.beds} bed` : null, p.location].filter(Boolean).join(' · ')}
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: '#0df259', marginTop: '4px', fontWeight: 500 }}>View listing →</div>
-                    </div>
-                  </a>
+                    </a>
+                    <button
+                      onClick={() => setProperties(prev => prev.filter((_, idx) => idx !== i))}
+                      style={{
+                        position: 'absolute',
+                        top: '6px',
+                        right: '6px',
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        border: 'none',
+                        background: 'rgba(255,255,255,0.1)',
+                        color: '#71717a',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '10px',
+                        lineHeight: 1,
+                        padding: 0,
+                        transition: 'background 0.15s, color 0.15s',
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.2)'; (e.currentTarget as HTMLButtonElement).style.color = '#f4f4f5'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.1)'; (e.currentTarget as HTMLButtonElement).style.color = '#71717a'; }}
+                      title="Dismiss"
+                    >✕</button>
+                  </div>
                 ))}
               </div>
             )}
