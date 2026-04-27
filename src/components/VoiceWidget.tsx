@@ -216,7 +216,9 @@ export const VoiceWidget: React.FC = () => {
       }
     } else if (msg.type === 'text') {
       const txt = msg.data as string;
-      if (txt.includes('[SYSTEM') || txt.includes('INTERNAL ONLY')) return;
+      const isSystemMsg = ['[SYSTEM', 'SYSTEM CONTEXT', 'CONTEXT UPDATE', 'VISITOR MEMORY',
+        'PROPERTY DETAILS', 'INTERNAL ONLY', 'INTERNALONLY', 'DO NOT SPEAK', 'DONOTSPEAK', 'DONOT'].some(p => txt.includes(p));
+      if (isSystemMsg) return;
       yhenBufferRef.current += txt;
       setSpeaker('yhen');
       setSpeechText(yhenBufferRef.current);

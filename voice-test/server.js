@@ -18,8 +18,11 @@ const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SU
 const SHEET_ID = '1EfFJMm1cOkyUI9jr-83W1UStrMCYdgzrAAeKAfbOoqQ';
 const SHEET_NAME = 'Sessions';
 
+const sheetsAuthConfig = process.env.GOOGLE_SHEETS_CREDENTIALS
+    ? { credentials: JSON.parse(process.env.GOOGLE_SHEETS_CREDENTIALS) }
+    : { keyFile: path.join(__dirname, 'credentials/google-sheets.json') };
 const sheetsAuth = new google.auth.GoogleAuth({
-    keyFile: path.join(__dirname, 'credentials/google-sheets.json'),
+    ...sheetsAuthConfig,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
@@ -38,10 +41,13 @@ async function logSessionToSheet(session) {
             session.phone || '',
             session.email || '',
             Math.round((Date.now() - new Date(session.startTime).getTime()) / 1000) + 's',
+            session.consentGiven === true ? 'Yes' : session.consentGiven === false ? 'No' : 'Not shown',
+            session.consentTimestamp || '',
+            session.propertiesClicked ? session.propertiesClicked.join(', ') : '',
         ];
         await sheets.spreadsheets.values.append({
             spreadsheetId: SHEET_ID,
-            range: `${SHEET_NAME}!A:J`,
+            range: `${SHEET_NAME}!A:M`,
             valueInputOption: 'RAW',
             requestBody: { values: [row] },
         });
@@ -267,6 +273,13 @@ You must ALWAYS ask first. The cards appear on screen automatically when show_li
 
 You can also answer questions about living in the Philippines (neighbourhoods, lifestyle, weather, cost of living). If someone wants to get in touch with Yhen directly — whether to ask about a listing, arrange a viewing, or anything else — offer to open WhatsApp.
 
+CONTACT DETAILS — only ask in these three situations, never any other time:
+1. Before opening WhatsApp — follow the steps below.
+2. If the user explicitly asks to be contacted or sent information — e.g. "can someone call me?", "can you send me more info?" — respond naturally and ask for what you need.
+3. When the user closes the widget after a meaningful session — offer once to email them a summary of what they looked at. Never ask again if they decline.
+
+Never ask for contact details upfront. Never ask mid-conversation unless one of the above applies.
+
 WHATSAPP CONTACT CAPTURE — follow this exactly every time before calling open_whatsapp:
 Step 1 — Ask what they'd like to say to Yhen.
 Step 2 — Ask for their name: "What name should I put at the bottom?"
@@ -275,7 +288,6 @@ Step 4 — Ask for their email: "And an email address?"
 Step 5 — If they skip number or email, that's fine — don't push, move on.
 Step 6 — Draft the full WhatsApp message including their name, number, and email at the bottom. Read it back to confirm.
 Step 7 — Call open_whatsapp with the complete message. Format: "[their message]. My name is [name][, my number is [number]][, my email is [email]]."
-Never ask for name, number, or email at any other point in the conversation. Never ask upfront. Never ask mid-conversation unless WhatsApp is about to be opened.
 
 LANGUAGE: If the user speaks to you in any language other than English, reply in that same language for the rest of the conversation. Keep the same warm Yhen personality regardless of language.
 
@@ -328,7 +340,18 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                             }
                         }
                         if (message.serverContent.outputTranscription && message.serverContent.outputTranscription.text) {
-                            ws.send(JSON.stringify({ type: 'text', data: message.serverContent.outputTranscription.text }));
+                            const outText = message.serverContent.outputTranscription.text;
+                            const isSystemMsg = [
+                                '[SYSTEM', 'SYSTEM CONTEXT', 'CONTEXT UPDATE',
+                                '[VISITOR MEMORY', 'VISITOR MEMORY',
+                                '[PROPERTY DETAILS', 'PROPERTY DETAILS',
+                                'INTERNAL ONLY', 'INTERNALONLY',
+                                'DO NOT SPEAK', 'DONOTSPEAK',
+                                'DO NOT ACKNOWLEDGE', 'DONOT',
+                            ].some(p => outText.includes(p));
+                            if (!isSystemMsg) {
+                                ws.send(JSON.stringify({ type: 'text', data: outText }));
+                            }
                         }
                         if (message.serverContent.inputTranscription && message.serverContent.inputTranscription.text) {
                             ws.send(JSON.stringify({ type: 'userText', data: message.serverContent.inputTranscription.text }));
@@ -355,6 +378,7 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                                 if (result.results && result.results.length > 0) {
                                     pendingProperties = result.results;
                                 }
+                                serverSession.searches.push(call.args || {});
                                 intentScore++;
                                 checkPhaseTransition();
                                 responses.push({ id: call.id, name: call.name, response: result });
@@ -366,17 +390,22 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                                         ? pendingProperties.filter(p => filterUrls.includes(p.url))
                                         : pendingProperties;
                                     ws.send(JSON.stringify({ type: 'properties', data: toShow }));
+                                    toShow.forEach(p => { if (p.url && !serverSession.propertiesShown.includes(p.url)) serverSession.propertiesShown.push(p.url); });
                                 }
                                 responses.push({ id: call.id, name: call.name, response: { shown: true } });
                             } else if (call.name === 'open_whatsapp') {
                                 const message = call.args?.message || 'Hi Yhen!';
                                 console.log('💬 Opening WhatsApp:', message);
                                 ws.send(JSON.stringify({ type: 'whatsapp', message }));
-                                responses.push({ id: call.id, name: call.name, response: { opened: true } });
+                                serverSession.whatsappOpened = true;
                             } else if (call.name === 'navigate_to') {
                                 const path = call.args?.path || '/';
                                 console.log(`🧭 Navigating to: ${path}`);
                                 ws.send(JSON.stringify({ type: 'navigate', path }));
+                                const fullUrl = path.startsWith('http') ? path : `https://yhensproperty.com${path}`;
+                                if (path.startsWith('/property/') && !serverSession.propertiesShown.includes(fullUrl)) {
+                                    serverSession.propertiesShown.push(fullUrl);
+                                }
                                 responses.push({ id: call.id, name: call.name, response: { navigated: true, path } });
                             }
                         }
@@ -396,6 +425,18 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
         let exchangeCount = 0;
         let intentScore = 0;
         let currentPhase = 1;
+
+        // Server-side session tracking — logged on disconnect, no browser message needed
+        const serverSession = {
+            sessionId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            startTime: new Date().toISOString(),
+            searches: [],
+            propertiesShown: [],
+            propertiesClicked: [],
+            whatsappOpened: false,
+            name: null, phone: null, email: null,
+            consentGiven: null, consentTimestamp: null,
+        };
 
         const checkPhaseTransition = () => {
             if (currentPhase === 1 && exchangeCount >= 3) {
@@ -488,16 +529,30 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                     : null;
                 const timeStr = daysSince === 0 ? 'earlier today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
                 session.sendRealtimeInput({ text: `[VISITOR MEMORY — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Returning visitor. Last visit: ${timeStr}. Total visits: ${mem.visitCount}. Greet as returning — "Welcome back!" — skip the full introduction.` });
+            } else if (msg.type === 'propertyClicked') {
+                if (msg.url && !serverSession.propertiesClicked.includes(msg.url)) {
+                    serverSession.propertiesClicked.push(msg.url);
+                }
+                console.log(`👆 Property clicked: ${msg.url}`);
+            } else if (msg.type === 'consent') {
+                serverSession.consentGiven = msg.given === true;
+                serverSession.consentTimestamp = new Date().toISOString();
             } else if (msg.type === 'sessionEnd') {
-                const sessionData = msg.data;
-                if (sessionData && sessionData.searches && sessionData.searches.length > 0) {
-                    logSessionToSheet(sessionData);
+                // Capture contact details from widget if available
+                const d = msg.data;
+                if (d) {
+                    if (d.name) serverSession.name = d.name;
+                    if (d.phone) serverSession.phone = d.phone;
+                    if (d.email) serverSession.email = d.email;
                 }
             }
         });
 
         ws.on('close', () => {
             console.log('🔴 Browser disconnected');
+            if (serverSession.searches.length > 0) {
+                logSessionToSheet(serverSession);
+            }
             closeSession('browser disconnected');
         });
 
