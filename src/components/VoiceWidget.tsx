@@ -217,6 +217,10 @@ export const VoiceWidget: React.FC = () => {
         session.whatsappOpened = true;
         session.lastActivity = new Date().toISOString();
         localStorage.setItem('yhen_session', JSON.stringify(session));
+        // Send session to server immediately when WhatsApp fires
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ type: 'sessionEnd', data: session }));
+        }
       }
       window.open(`https://wa.me/639467543767?text=${text}`, '_blank');
     }
@@ -225,6 +229,14 @@ export const VoiceWidget: React.FC = () => {
   const disconnect = useCallback(() => {
     stopAllAudio();
     if (playbackContextRef.current) { playbackContextRef.current.close(); playbackContextRef.current = null; }
+    // Send session to server on disconnect if there were any searches
+    const raw = localStorage.getItem('yhen_session');
+    if (raw && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const session = JSON.parse(raw);
+      if (session.searches && session.searches.length > 0) {
+        wsRef.current.send(JSON.stringify({ type: 'sessionEnd', data: session }));
+      }
+    }
     if (wsRef.current) wsRef.current.close();
     if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach(t => t.stop());
     if (audioContextRef.current) audioContextRef.current.close();

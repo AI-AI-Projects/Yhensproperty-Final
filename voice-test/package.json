@@ -11,6 +11,7 @@
     "@supabase/supabase-js": "*",
     "dotenv": "*",
     "express": "*",
+    "googleapis": "^171.4.0",
     "ws": "*"
   }
 }

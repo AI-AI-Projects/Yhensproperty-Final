@@ -4,6 +4,8 @@ const http = require('http');
 const { WebSocketServer } = require('ws');
 const { GoogleGenAI } = require('@google/genai');
 const { createClient } = require('@supabase/supabase-js');
+const { google } = require('googleapis');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,6 +14,42 @@ const wss = new WebSocketServer({ server });
 const PORT = 3001;
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
+
+const SHEET_ID = '1EfFJMm1cOkyUI9jr-83W1UStrMCYdgzrAAeKAfbOoqQ';
+const SHEET_NAME = 'Sessions';
+
+const sheetsAuth = new google.auth.GoogleAuth({
+    keyFile: path.join(__dirname, 'credentials/google-sheets.json'),
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+});
+
+async function logSessionToSheet(session) {
+    try {
+        const auth = await sheetsAuth.getClient();
+        const sheets = google.sheets({ version: 'v4', auth });
+        const row = [
+            session.sessionId || '',
+            session.startTime || '',
+            new Date().toISOString(),
+            session.searches ? session.searches.length : 0,
+            session.propertiesShown ? session.propertiesShown.join(', ') : '',
+            session.whatsappOpened ? 'Yes' : 'No',
+            session.name || '',
+            session.phone || '',
+            session.email || '',
+            Math.round((Date.now() - new Date(session.startTime).getTime()) / 1000) + 's',
+        ];
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: SHEET_ID,
+            range: `${SHEET_NAME}!A:J`,
+            valueInputOption: 'RAW',
+            requestBody: { values: [row] },
+        });
+        console.log('📊 Session logged to Google Sheets');
+    } catch (err) {
+        console.error('❌ Failed to log session to Sheets:', err.message);
+    }
+}
 
 
 function applyFilters(q, { bedrooms, bathrooms, listing_type, location, min_price, max_price, property_type }) {
@@ -450,6 +488,11 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                     : null;
                 const timeStr = daysSince === 0 ? 'earlier today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
                 session.sendRealtimeInput({ text: `[VISITOR MEMORY — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Returning visitor. Last visit: ${timeStr}. Total visits: ${mem.visitCount}. Greet as returning — "Welcome back!" — skip the full introduction.` });
+            } else if (msg.type === 'sessionEnd') {
+                const sessionData = msg.data;
+                if (sessionData && sessionData.searches && sessionData.searches.length > 0) {
+                    logSessionToSheet(sessionData);
+                }
             }
         });
 
