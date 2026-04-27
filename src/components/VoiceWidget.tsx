@@ -775,38 +775,21 @@ export const VoiceWidget: React.FC = () => {
         )}
       </div>
 
-      {/* Property detail modal — backdrop */}
-      {(modalLoading || modalProperty) && (
-        <div
-          onClick={() => { setModalProperty(null); setModalLoading(false); }}
-          style={{
-            position: 'fixed', inset: 0,
-            background: 'rgba(0,0,0,0.7)',
-            zIndex: 10000,
-          }}
-        />
-      )}
-
       {/* Property detail modal */}
       {(modalLoading || modalProperty) && (
         <div style={{
           position: 'fixed',
           ...(isMobile
             ? { inset: 0 }
-            : {
-                top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 'min(780px, 90vw)',
-                maxHeight: '90vh',
-              }),
+            : { top: '16px', bottom: '16px', right: '16px', width: 'min(560px, calc(100vw - 640px))' }),
           background: '#0f0f10',
           borderRadius: isMobile ? 0 : '16px',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.12)',
           display: 'flex',
           flexDirection: 'column',
-          zIndex: 10001,
+          zIndex: 9998,
           overflow: 'hidden',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
+          boxShadow: '0 8px 48px rgba(0,0,0,0.7)',
         }}>
           {/* Modal header */}
           <div style={{
@@ -945,6 +928,26 @@ export const VoiceWidget: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Google Maps embed */}
+                {(() => {
+                  const mapQuery = [modalProperty.address, modalProperty.barangay, modalProperty.city].filter(Boolean).join(', ');
+                  return mapQuery ? (
+                    <div>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: '8px' }}>Location</div>
+                      <iframe
+                        src={`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed&z=15`}
+                        width="100%"
+                        height="180"
+                        style={{ border: 0, borderRadius: '10px', display: 'block' }}
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title="Property location"
+                      />
+                    </div>
+                  ) : null;
+                })()}
 
                 {/* Action buttons */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '4px' }}>
