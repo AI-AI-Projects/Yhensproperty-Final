@@ -105,6 +105,14 @@ export const VoiceWidget: React.FC = () => {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('reset') === '1') {
+      localStorage.removeItem('yhen_visitor');
+      localStorage.removeItem('yhen_session');
+      localStorage.removeItem('yhen_summary_offered');
+    }
+  }, []);
+
   const wsRef = useRef<WebSocket | null>(null);
   const pathnameRef = useRef(location.pathname);
   pathnameRef.current = location.pathname;
