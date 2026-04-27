@@ -98,6 +98,7 @@ export const VoiceWidget: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [textInput, setTextInput] = useState('');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [showConsent, setShowConsent] = useState(false);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
@@ -277,6 +278,12 @@ export const VoiceWidget: React.FC = () => {
 
       ws.onopen = () => {
         setStatus('listening');
+        // Send consent status to server
+        const rawConsent = localStorage.getItem('yhen_consent');
+        if (rawConsent) {
+          const consent = JSON.parse(rawConsent);
+          ws.send(JSON.stringify({ type: 'consent', given: consent.given }));
+        }
         // Send returning visitor memory if exists
         const rawMemory = localStorage.getItem('yhen_visitor');
         if (rawMemory) {
@@ -349,11 +356,22 @@ export const VoiceWidget: React.FC = () => {
     if (status === 'idle') {
       setOpen(true);
       setMinimized(false);
-      connect();
+      if (!localStorage.getItem('yhen_consent')) {
+        setShowConsent(true);
+      } else {
+        connect();
+      }
     } else if (minimized) {
       setMinimized(false);
     }
   };
+
+  const handleConsent = useCallback((given: boolean) => {
+    const consentData = { given, timestamp: new Date().toISOString() };
+    localStorage.setItem('yhen_consent', JSON.stringify(consentData));
+    setShowConsent(false);
+    connect();
+  }, [connect]);
 
   const toggleMute = () => setIsMuted(m => !m);
 
@@ -489,7 +507,30 @@ export const VoiceWidget: React.FC = () => {
               </div>
             </div>
 
-            {/* Speech text */}
+            {/* Consent card */}
+            {showConsent ? (
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ fontSize: '0.82rem', lineHeight: 1.6, color: '#d4d4d8' }}>
+                  Before we start — do you mind if I remember this conversation to give you better suggestions?
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#71717a', lineHeight: 1.5 }}>
+                  Either way, I can still help you find properties.
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => handleConsent(true)} style={{
+                    flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid rgba(13,242,89,0.3)',
+                    background: 'rgba(13,242,89,0.08)', color: '#0df259', fontSize: '0.78rem',
+                    fontWeight: 600, cursor: 'pointer',
+                  }}>Yes, that's fine</button>
+                  <button onClick={() => handleConsent(false)} style={{
+                    flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'rgba(255,255,255,0.05)', color: '#a1a1aa', fontSize: '0.78rem',
+                    fontWeight: 600, cursor: 'pointer',
+                  }}>No thanks</button>
+                </div>
+              </div>
+            ) : (
+            /* Speech text */
             <div style={{
               padding: '14px 16px',
               minHeight: '64px',
@@ -516,6 +557,7 @@ export const VoiceWidget: React.FC = () => {
                 'Ask me anything about our services...'
               )}
             </div>
+            )}
 
             {/* Text input */}
             {isConnected && (
