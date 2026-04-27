@@ -787,7 +787,7 @@ export const VoiceWidget: React.FC = () => {
           border: '1px solid rgba(255,255,255,0.12)',
           display: 'flex',
           flexDirection: 'column',
-          zIndex: 9998,
+          zIndex: isMobile ? 10000 : 9998,
           overflow: 'hidden',
           boxShadow: '0 8px 48px rgba(0,0,0,0.7)',
         }}>
