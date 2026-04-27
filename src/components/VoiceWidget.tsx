@@ -182,7 +182,9 @@ export const VoiceWidget: React.FC = () => {
         pendingTurnCompleteRef.current = true;
       }
     } else if (msg.type === 'text') {
-      yhenBufferRef.current += msg.data as string;
+      const txt = msg.data as string;
+      if (txt.includes('[SYSTEM') || txt.includes('INTERNAL ONLY')) return;
+      yhenBufferRef.current += txt;
       setSpeaker('yhen');
       setSpeechText(yhenBufferRef.current);
     } else if (msg.type === 'userText') {
