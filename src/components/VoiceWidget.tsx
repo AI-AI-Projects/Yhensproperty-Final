@@ -781,7 +781,7 @@ export const VoiceWidget: React.FC = () => {
           position: 'fixed',
           ...(isMobile
             ? { inset: 0 }
-            : { top: '16px', bottom: '16px', right: '16px', width: 'min(560px, calc(100vw - 640px))' }),
+            : { top: '70px', bottom: '16px', right: '16px', width: 'min(640px, calc(100vw - 610px))' }),
           background: '#0f0f10',
           borderRadius: isMobile ? 0 : '16px',
           border: '1px solid rgba(255,255,255,0.12)',
