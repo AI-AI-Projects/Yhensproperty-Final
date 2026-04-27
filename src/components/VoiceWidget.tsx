@@ -320,17 +320,7 @@ export const VoiceWidget: React.FC = () => {
   }, [handleMessage, disconnect]);
 
   useEffect(() => {
-    const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (suppressNextPageContextRef.current) {
-      suppressNextPageContextRef.current = false;
-      return;
-    }
-    buildPageContext(location.pathname).then(ctx => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'pageContext', data: ctx }));
-      }
-    });
+    suppressNextPageContextRef.current = false;
   }, [location.pathname]);
 
   const handleMicClick = () => {
