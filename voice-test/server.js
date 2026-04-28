@@ -106,36 +106,52 @@ function calculateLeadIntentScore(session) {
     let score = 0;
     if (session.whatsappOpened) score += 40;
     if (session.sameListingClickedTwice) score += 20;
-    if (session.budgetMentioned) score += 15;
-    if (session.timelineMentioned) score += 10;
-    if (session.buyerType) score += 10;
-    score += Math.min(session.searches.length, 5);
+    if (session.viewingRequested) score += 15;
+    if (session.budgetMentioned) score += 10;
+    if (session.timelineMentioned) score += 5;
+    if (session.buyerType) score += 5;
+    if (session.financingMentioned) score += 5;
+    score += Math.min(session.searches.length, 5) * 1;
     return Math.min(score, 100);
 }
 
 function calculateStrongestSignals(session) {
     const signals = [];
     if (session.whatsappOpened) signals.push('whatsapp_opened');
+    if (session.viewingRequested) signals.push('viewing_requested');
     if (session.sameListingClickedTwice) signals.push('same_listing_twice');
     if (session.budgetMentioned) signals.push('budget_given');
     if (session.timelineMentioned) signals.push('timeline_given');
     if (session.buyerType) signals.push('buyer_type_given');
+    if (session.financingMentioned) signals.push('financing_given');
     if (session.searches.length >= 3) signals.push('multiple_searches');
     if (session.propertiesClicked.length >= 3) signals.push('multiple_properties_clicked');
     return signals;
 }
 
+function calculateIsHotLead(session, score) {
+    const hotTimeline = ['immediate', '1-3_months'].includes(session.timelineBucket);
+    return score > 70 && (hotTimeline || session.viewingRequested);
+}
+
 async function logInsightsToSupabase(session) {
     try {
+        const leadIntentScore = calculateLeadIntentScore(session);
         const { error } = await loggingDb.from('insights').insert({
             session_id: session.sessionId,
             buyer_type: session.buyerType || null,
             conversation_depth: calculateConversationDepth(session),
-            lead_intent_score: calculateLeadIntentScore(session),
+            lead_intent_score: leadIntentScore,
             strongest_signals: calculateStrongestSignals(session),
+            is_hot_lead: calculateIsHotLead(session, leadIntentScore),
             languages: session.languages,
             budget_mentioned: session.budgetMentioned || null,
+            budget_min: session.budgetMin || null,
+            budget_max: session.budgetMax || null,
             timeline_mentioned: session.timelineMentioned || null,
+            timeline_bucket: session.timelineBucket || null,
+            viewing_requested: session.viewingRequested,
+            financing_mentioned: session.financingMentioned || null,
         });
         if (error) throw error;
         console.log('💡 Insights logged to Supabase');
@@ -312,7 +328,7 @@ const tools = [{
         }
     }, {
         name: 'update_lead_state',
-        description: 'Call this silently whenever you learn any of the following about the visitor: their buyer type, their budget, their timeline, or when they switch language. This is always a background action — do not mention it, do not pause, just call it while continuing the conversation naturally. Only include fields you actually learned — omit fields you do not know.',
+        description: 'Call this silently whenever you learn anything about the visitor — buyer type, budget, timeline, language switch, viewing request, or financing preference. Background action only — do not pause or mention it. Only include fields you actually learned, omit the rest.',
         parameters: {
             type: 'OBJECT',
             properties: {
@@ -323,15 +339,37 @@ const tools = [{
                 },
                 language: {
                     type: 'STRING',
-                    description: 'ISO 639-1 language code of the language the user just switched to or is speaking in. E.g. "tl" for Tagalog/Filipino, "zh" for Mandarin, "ja" for Japanese, "ko" for Korean, "es" for Spanish. Only call with this field when the user speaks in a non-English language.'
+                    description: 'ISO 639-1 code when user speaks a non-English language. E.g. "tl" Tagalog, "zh" Mandarin, "ja" Japanese, "ko" Korean, "es" Spanish.'
                 },
                 budget_mentioned: {
                     type: 'STRING',
-                    description: 'The budget the user mentioned, exactly as they said it. E.g. "around 5 million", "under 8M", "between 3 and 5 million pesos". Capture this whenever they mention a price range or budget — from search filters, reactions to prices, or direct statements.'
+                    description: 'Budget exactly as said. E.g. "around 5 million", "under 8M", "between 3 and 5 million pesos".'
+                },
+                budget_min: {
+                    type: 'NUMBER',
+                    description: 'Parsed minimum budget in PHP as a number. E.g. if they say "between 5 and 8 million" set this to 5000000.'
+                },
+                budget_max: {
+                    type: 'NUMBER',
+                    description: 'Parsed maximum budget in PHP as a number. E.g. if they say "under 8 million" set this to 8000000.'
                 },
                 timeline_mentioned: {
                     type: 'STRING',
-                    description: 'The buying timeline the user mentioned, exactly as they said it. E.g. "within 3 months", "before the end of the year", "still just looking". Only capture when they state or confirm a timeline in response to a direct question.'
+                    description: 'Timeline exactly as said. E.g. "within 3 months", "before end of year", "still just looking".'
+                },
+                timeline_bucket: {
+                    type: 'STRING',
+                    description: 'Standardised timeline bucket based on what they said.',
+                    enum: ['immediate', '1-3_months', '3-6_months', '6-12_months', '12+_months', 'researching']
+                },
+                viewing_requested: {
+                    type: 'BOOLEAN',
+                    description: 'Set to true if the user explicitly asked about arranging a viewing or site visit.'
+                },
+                financing_mentioned: {
+                    type: 'STRING',
+                    description: 'How they plan to finance the purchase, if mentioned.',
+                    enum: ['cash', 'bank_loan', 'installment', 'pag-ibig']
                 }
             },
             required: []
@@ -401,7 +439,9 @@ PHASE 3 — High intent detected: Trigger this when the user returns to the same
 
 TIMELINE QUESTION: After the user has shown genuine interest — compared multiple listings, asked for more detail on a specific property, or responded positively to the Phase 2 question — ask the timeline question once, naturally: e.g. "Just so I can help you better — are you looking to move on something in the next few months, or still in the research phase?" Only ask this AFTER the buyer type question has already been asked and answered. Never ask both in the same breath. Drop it immediately if ignored. When they answer, silently call update_lead_state with timeline_mentioned.
 
-BUDGET CAPTURE: Never ask about budget directly. But whenever the user mentions a price range, reacts to a price ("that's too expensive", "that's reasonable"), or states a budget — silently call update_lead_state with budget_mentioned immediately.
+BUDGET CAPTURE: Never ask about budget directly. But whenever the user mentions a price range, reacts to a price ("that's too expensive", "that's reasonable"), or states a budget — silently call update_lead_state with budget_mentioned, budget_min, and budget_max immediately. Parse the numbers yourself — e.g. "around 5 to 8 million" → budget_min: 5000000, budget_max: 8000000.
+
+VIEWING & FINANCING: If the user asks about arranging a viewing, site visit, or inspection — set viewing_requested: true in update_lead_state. If they mention how they plan to pay (cash, bank loan, installment, Pag-IBIG) — set financing_mentioned accordingly.
 
 RETURNING VISITORS: If you receive a [VISITOR MEMORY] context, say exactly this and nothing else: "Hi again, how can I help?" — then stop and wait. Do NOT introduce yourself. Do NOT list what you can do. Do NOT mention the page they are on. One short phrase, then silence.
 
@@ -512,23 +552,16 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                                 ws.send(JSON.stringify({ type: 'whatsapp', message }));
                                 serverSession.whatsappOpened = true;
                             } else if (call.name === 'update_lead_state') {
-                                const { buyer_type, language, budget_mentioned, timeline_mentioned } = call.args || {};
-                                if (buyer_type) {
-                                    serverSession.buyerType = buyer_type;
-                                    console.log(`💡 Buyer type: ${buyer_type}`);
-                                }
-                                if (language && !serverSession.languages.includes(language)) {
-                                    serverSession.languages.push(language);
-                                    console.log(`🌐 Language detected: ${language}`);
-                                }
-                                if (budget_mentioned) {
-                                    serverSession.budgetMentioned = budget_mentioned;
-                                    console.log(`💰 Budget: ${budget_mentioned}`);
-                                }
-                                if (timeline_mentioned) {
-                                    serverSession.timelineMentioned = timeline_mentioned;
-                                    console.log(`📅 Timeline: ${timeline_mentioned}`);
-                                }
+                                const { buyer_type, language, budget_mentioned, budget_min, budget_max, timeline_mentioned, timeline_bucket, viewing_requested, financing_mentioned } = call.args || {};
+                                if (buyer_type) { serverSession.buyerType = buyer_type; console.log(`💡 Buyer type: ${buyer_type}`); }
+                                if (language && !serverSession.languages.includes(language)) { serverSession.languages.push(language); console.log(`🌐 Language: ${language}`); }
+                                if (budget_mentioned) { serverSession.budgetMentioned = budget_mentioned; console.log(`💰 Budget: ${budget_mentioned}`); }
+                                if (budget_min != null) { serverSession.budgetMin = budget_min; }
+                                if (budget_max != null) { serverSession.budgetMax = budget_max; }
+                                if (timeline_mentioned) { serverSession.timelineMentioned = timeline_mentioned; console.log(`📅 Timeline: ${timeline_mentioned}`); }
+                                if (timeline_bucket) { serverSession.timelineBucket = timeline_bucket; }
+                                if (viewing_requested) { serverSession.viewingRequested = true; console.log(`👁️ Viewing requested`); }
+                                if (financing_mentioned) { serverSession.financingMentioned = financing_mentioned; console.log(`🏦 Financing: ${financing_mentioned}`); }
                                 responses.push({ id: call.id, name: call.name, response: { recorded: true } });
                             } else if (call.name === 'navigate_to') {
                                 const path = call.args?.path || '/';
@@ -575,7 +608,12 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
             sameListingClickedTwice: false,
             languages: ['en'],
             budgetMentioned: null,
+            budgetMin: null,
+            budgetMax: null,
             timelineMentioned: null,
+            timelineBucket: null,
+            viewingRequested: false,
+            financingMentioned: null,
         };
 
         const checkPhaseTransition = () => {
