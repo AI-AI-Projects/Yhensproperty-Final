@@ -368,10 +368,6 @@ export const VoiceWidget: React.FC = () => {
         processor.onaudioprocess = (e) => {
           if (ws.readyState !== WebSocket.OPEN || isMutedRef.current || document.hidden) return;
           const float32 = e.inputBuffer.getChannelData(0);
-          // Client-side VAD: skip silent chunks to avoid billing for silence
-          let sum = 0;
-          for (let i = 0; i < float32.length; i++) sum += float32[i] * float32[i];
-          if (Math.sqrt(sum / float32.length) < 0.01) return;
           const pcm16 = convertFloat32ToInt16(float32);
           const b64 = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
           ws.send(JSON.stringify({ type: 'realtimeInput', data: b64 }));
