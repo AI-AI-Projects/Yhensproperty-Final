@@ -594,7 +594,7 @@ export const VoiceWidget: React.FC = () => {
             <div style={{
               padding: '14px 16px',
               minHeight: '64px',
-              maxHeight: '260px',
+              maxHeight: 'calc(100vh - 220px)',
               overflowY: 'auto',
               fontSize: '0.875rem',
               lineHeight: 1.6,
