@@ -482,7 +482,7 @@ export const VoiceWidget: React.FC = () => {
             borderRadius: isMobile ? '0px' : '18px',
             width: isMobile ? '100%' : '560px',
             height: isMobile ? '100%' : 'auto',
-            maxHeight: isMobile ? '100%' : '580px',
+            maxHeight: isMobile ? '100%' : 'calc(100vh - 100px)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
