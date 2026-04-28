@@ -491,7 +491,7 @@ export const VoiceWidget: React.FC = () => {
             borderRadius: isMobile ? '0px' : '18px',
             width: isMobile ? '100%' : '560px',
             height: isMobile ? '100%' : 'auto',
-            maxHeight: isMobile ? '100%' : 'calc(100vh - 100px)',
+            maxHeight: isMobile ? '100%' : 'calc(100vh - 150px)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -589,8 +589,8 @@ export const VoiceWidget: React.FC = () => {
             /* Speech text */
             <div style={{
               padding: '14px 16px',
-              minHeight: '64px',
-              maxHeight: 'calc(100vh - 220px)',
+              flex: 1,
+              minHeight: '80px',
               overflowY: 'auto',
               fontSize: '0.875rem',
               lineHeight: 1.6,
@@ -664,7 +664,8 @@ export const VoiceWidget: React.FC = () => {
               <div style={{
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 overflowY: 'auto',
-                flexShrink: 1,
+                flexShrink: 0,
+                maxHeight: '280px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px',
