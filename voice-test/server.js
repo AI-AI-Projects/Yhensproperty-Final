@@ -369,7 +369,7 @@ const tools = [{
                 financing_mentioned: {
                     type: 'STRING',
                     description: 'How they plan to finance the purchase, if mentioned.',
-                    enum: ['cash', 'bank_loan', 'installment', 'pag-ibig']
+                    enum: ['cash', 'bank_loan', 'installment']
                 }
             },
             required: []
