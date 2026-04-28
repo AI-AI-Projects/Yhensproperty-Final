@@ -131,6 +131,14 @@ export const VoiceWidget: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const onBeforeUnload = () => {
+      if (wsRef.current) wsRef.current.close();
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, []);
+
+  useEffect(() => {
     if (new URLSearchParams(window.location.search).get('reset') === '1') {
       localStorage.removeItem('yhen_visitor');
       localStorage.removeItem('yhen_session');
@@ -358,8 +366,13 @@ export const VoiceWidget: React.FC = () => {
         src.connect(processor);
         processor.connect(ctx.destination);
         processor.onaudioprocess = (e) => {
-          if (ws.readyState !== WebSocket.OPEN || isMutedRef.current) return;
-          const pcm16 = convertFloat32ToInt16(e.inputBuffer.getChannelData(0));
+          if (ws.readyState !== WebSocket.OPEN || isMutedRef.current || document.hidden) return;
+          const float32 = e.inputBuffer.getChannelData(0);
+          // Client-side VAD: skip silent chunks to avoid billing for silence
+          let sum = 0;
+          for (let i = 0; i < float32.length; i++) sum += float32[i] * float32[i];
+          if (Math.sqrt(sum / float32.length) < 0.01) return;
+          const pcm16 = convertFloat32ToInt16(float32);
           const b64 = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
           ws.send(JSON.stringify({ type: 'realtimeInput', data: b64 }));
         };
