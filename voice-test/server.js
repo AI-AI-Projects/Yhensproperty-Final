@@ -102,6 +102,9 @@ async function logInsightsToSupabase(session) {
             buyer_type: session.buyerType || null,
             max_phase_reached: session.maxPhaseReached || 1,
             intent_score: session.intentScore || 0,
+            languages: session.languages,
+            budget_mentioned: session.budgetMentioned || null,
+            timeline_mentioned: session.timelineMentioned || null,
         });
         if (error) throw error;
         console.log('💡 Insights logged to Supabase');
@@ -278,17 +281,29 @@ const tools = [{
         }
     }, {
         name: 'update_lead_state',
-        description: 'Call this silently and immediately when the visitor reveals their buyer type in response to your Phase 2 qualifying question. This is a background action — do not mention it, do not pause, just call it while continuing the conversation naturally.',
+        description: 'Call this silently whenever you learn any of the following about the visitor: their buyer type, their budget, their timeline, or when they switch language. This is always a background action — do not mention it, do not pause, just call it while continuing the conversation naturally. Only include fields you actually learned — omit fields you do not know.',
         parameters: {
             type: 'OBJECT',
             properties: {
                 buyer_type: {
                     type: 'STRING',
-                    description: '"investor" if they are buying for investment/rental income/portfolio. "residential" if they are buying for personal use/to live in.',
+                    description: '"investor" if buying for investment/rental income/portfolio. "residential" if buying for personal use/to live in.',
                     enum: ['investor', 'residential']
+                },
+                language: {
+                    type: 'STRING',
+                    description: 'ISO 639-1 language code of the language the user just switched to or is speaking in. E.g. "tl" for Tagalog/Filipino, "zh" for Mandarin, "ja" for Japanese, "ko" for Korean, "es" for Spanish. Only call with this field when the user speaks in a non-English language.'
+                },
+                budget_mentioned: {
+                    type: 'STRING',
+                    description: 'The budget the user mentioned, exactly as they said it. E.g. "around 5 million", "under 8M", "between 3 and 5 million pesos". Capture this whenever they mention a price range or budget — from search filters, reactions to prices, or direct statements.'
+                },
+                timeline_mentioned: {
+                    type: 'STRING',
+                    description: 'The buying timeline the user mentioned, exactly as they said it. E.g. "within 3 months", "before the end of the year", "still just looking". Only capture when they state or confirm a timeline in response to a direct question.'
                 }
             },
-            required: ['buyer_type']
+            required: []
         }
     }]
 }];
@@ -343,15 +358,19 @@ Step 5 — If they skip number or email, that's fine — don't push, move on.
 Step 6 — Draft the full WhatsApp message and read it back to confirm. The message MUST include: (a) what they want to say, (b) the property title AND full URL on its own line so Yhen can click it directly, (c) their name, number, and email at the bottom.
 Step 7 — Call open_whatsapp with the complete message. Format: "[their message]\n\nProperty: [title]\n[full URL]\n\nMy name is [name][, my number is [number]][, my email is [email]]."
 
-LANGUAGE: If the user speaks to you in any language other than English, reply in that same language for the rest of the conversation. Keep the same warm Yhen personality regardless of language.
+LANGUAGE: If the user speaks to you in any language other than English, reply in that same language for the rest of the conversation. Keep the same warm Yhen personality regardless of language. Whenever the user speaks in a non-English language, silently call update_lead_state with the language code immediately.
 
 BEHAVIORAL ARC — your approach evolves as the conversation deepens:
 
 PHASE 1 — Start of conversation: Pure assistant mode. Answer only what is asked. No qualifying questions, no suggestions to get in touch, no prompts about viewings. Help first. Build trust.
 
-PHASE 2 — Depth question asked: When the user asks about something specific — parking, schools, taxes, payment terms, HOA fees, or specific listing details — weave in ONE natural qualifying question tied to what you're already doing: e.g. "I'm looking that up for you — are you thinking of this for yourself, or more as an investment? I want to make sure I highlight the right things." Only if it flows naturally. Drop it immediately if ignored. One attempt only, never again.
+PHASE 2 — Depth question asked: When the user asks about something specific — parking, schools, taxes, payment terms, HOA fees, or specific listing details — weave in ONE natural qualifying question tied to what you're already doing: e.g. "I'm looking that up for you — are you thinking of this for yourself, or more as an investment? I want to make sure I highlight the right things." Only if it flows naturally. Drop it immediately if ignored. One attempt only, never again. When they answer, silently call update_lead_state with buyer_type immediately.
 
 PHASE 3 — High intent detected: Trigger this when the user returns to the same listing twice, OR when they ask about viewings, payment plans, or next steps. Surface the next step once: "This one keeps coming up — would you like me to arrange a viewing with Yhen?" If ignored, move on. Never push twice.
+
+TIMELINE QUESTION: After the user has shown genuine interest — compared multiple listings, asked for more detail on a specific property, or responded positively to the Phase 2 question — ask the timeline question once, naturally: e.g. "Just so I can help you better — are you looking to move on something in the next few months, or still in the research phase?" Only ask this AFTER the buyer type question has already been asked and answered. Never ask both in the same breath. Drop it immediately if ignored. When they answer, silently call update_lead_state with timeline_mentioned.
+
+BUDGET CAPTURE: Never ask about budget directly. But whenever the user mentions a price range, reacts to a price ("that's too expensive", "that's reasonable"), or states a budget — silently call update_lead_state with budget_mentioned immediately.
 
 RETURNING VISITORS: If you receive a [VISITOR MEMORY] context, say exactly this and nothing else: "Hi again, how can I help?" — then stop and wait. Do NOT introduce yourself. Do NOT list what you can do. Do NOT mention the page they are on. One short phrase, then silence.
 
@@ -462,11 +481,23 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                                 ws.send(JSON.stringify({ type: 'whatsapp', message }));
                                 serverSession.whatsappOpened = true;
                             } else if (call.name === 'update_lead_state') {
-                                const buyerType = call.args?.buyer_type;
-                                if (buyerType) {
-                                    serverSession.buyerType = buyerType;
+                                const { buyer_type, language, budget_mentioned, timeline_mentioned } = call.args || {};
+                                if (buyer_type) {
+                                    serverSession.buyerType = buyer_type;
                                     serverSession.maxPhaseReached = Math.max(serverSession.maxPhaseReached, 2);
-                                    console.log(`💡 Buyer type captured: ${buyerType}`);
+                                    console.log(`💡 Buyer type: ${buyer_type}`);
+                                }
+                                if (language && !serverSession.languages.includes(language)) {
+                                    serverSession.languages.push(language);
+                                    console.log(`🌐 Language detected: ${language}`);
+                                }
+                                if (budget_mentioned) {
+                                    serverSession.budgetMentioned = budget_mentioned;
+                                    console.log(`💰 Budget: ${budget_mentioned}`);
+                                }
+                                if (timeline_mentioned) {
+                                    serverSession.timelineMentioned = timeline_mentioned;
+                                    console.log(`📅 Timeline: ${timeline_mentioned}`);
                                 }
                                 responses.push({ id: call.id, name: call.name, response: { recorded: true } });
                             } else if (call.name === 'navigate_to') {
@@ -512,6 +543,9 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
             consentGiven: null, consentTimestamp: null,
             buyerType: null,
             maxPhaseReached: 1,
+            languages: ['en'],
+            budgetMentioned: null,
+            timelineMentioned: null,
         };
 
         const checkPhaseTransition = () => {
