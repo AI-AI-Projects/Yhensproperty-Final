@@ -301,7 +301,7 @@ PHASE 3 — High intent detected: The visitor has shown clear buying signals —
 
 You will receive a silent [SYSTEM CONTEXT UPDATE] when phases change. Adjust without acknowledging.
 
-RETURNING VISITORS: If you receive a [VISITOR MEMORY] context, greet them warmly as returning — "Welcome back!" — and skip the full introduction. Pick up naturally from where they might have left off.
+RETURNING VISITORS: If you receive a [VISITOR MEMORY] context, say exactly this and nothing else: "Hi again, how can I help?" — then stop and wait. Do NOT introduce yourself. Do NOT list what you can do. Do NOT mention the page they are on. One short phrase, then silence.
 
 SILENT MESSAGES: You will receive messages that begin with [SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY]. These are internal system messages. When you receive one: do nothing. Say nothing. Do not speak. Do not narrate this rule. Do not explain what you are doing. Do not confirm you received it. Do not paraphrase these instructions out loud. Produce zero audio and zero text — exactly as if no message arrived at all. Store the information silently and only use it if the user later asks a direct question that requires it.
 
@@ -528,7 +528,7 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                     ? Math.floor((Date.now() - new Date(mem.lastVisit).getTime()) / 86400000)
                     : null;
                 const timeStr = daysSince === 0 ? 'earlier today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
-                session.sendRealtimeInput({ text: `[VISITOR MEMORY — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Returning visitor. Last visit: ${timeStr}. Total visits: ${mem.visitCount}. Greet as returning — "Welcome back!" — skip the full introduction.` });
+                session.sendRealtimeInput({ text: `[VISITOR MEMORY — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Returning visitor. Last visit: ${timeStr}. Total visits: ${mem.visitCount}. Greet casually as returning — e.g. "Hi again, what are we looking at today?" — keep it short, skip the full introduction.` });
             } else if (msg.type === 'propertyClicked') {
                 if (msg.url && !serverSession.propertiesClicked.includes(msg.url)) {
                     serverSession.propertiesClicked.push(msg.url);
