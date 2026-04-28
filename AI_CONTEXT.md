@@ -1,111 +1,139 @@
-# AI Context: Yhen's Property
+# Yhen's Property — AI Voice Agent: System Context
 
-## 1. Project Overview
-Yhen's Property is a boutique freelance Philippine real estate agency platform built and run by Yhen Oria — a licensed agent with 6 years experience specialising in helping expats and foreigners buy property legally in the Philippines. The platform serves as a property listing directory (buy/rent), an SEO/AEO-focused investor guide hub, and an admin portal for managing inventory and commissions.
+This document describes the full architecture of the Yhen's Property AI voice agent. Read this first before making any changes to the system.
 
-The site also features a live voice AI assistant ("Yhen") powered by Gemini Live API — the first major feature of an AI property assistant product being developed for sale to other real estate agencies.
+---
 
-## 2. Tech Stack
+## Stack Overview
 
-### Frontend
-- **Framework**: React 19 + Vite
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS (container-queries, forms plugins)
-- **Routing**: React Router v6
-- **Deployment**: Netlify (auto-deploys from GitHub `main` branch)
+| Layer | What it is |
+|---|---|
+| **Frontend** | React app (Vite + TypeScript). Voice widget lives in `src/components/VoiceWidget.tsx` |
+| **Server** | Node.js (`voice-test/server.js`) deployed on Railway, service name: `cooperative-vibrancy` |
+| **AI** | Gemini Live API — model `gemini-3.1-flash-live-preview` via `@google/genai` SDK |
+| **Listings DB** | Supabase project (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) — `properties` table |
+| **Logging DB** | Supabase project (SUPABASE_URL / SUPABASE_SERVICE_KEY) — transcript logging project |
+| **Session Logging** | Google Sheets — one row per session, Tier 2 data only |
 
-### Backend / Data
-- **Database**: Supabase (PostgreSQL, Storage, Auth)
-- **Auth**: Supabase Auth with MFA (`MFAEnroll`, `MFAVerify`) behind `ProtectedRoute`
+---
 
-### Voice AI Server
-- **Runtime**: Node.js (Express + ws WebSocket server)
-- **AI Model**: Gemini 3.1 Flash Live (`gemini-3.1-flash-live-preview`) via `@google/genai`
-- **Hosting**: Railway (deployed from `voice-test/` subdirectory of this repo)
-- **Local dev**: `ws://localhost:3001` — switch to `wss://[railway-url]` for production
+## How a Session Works
 
-## 3. Key Architectural Patterns
-- **Lazy Loading**: Routes lazy-loaded in `src/App.tsx` via `React.lazy` + `Suspense`
-- **Component Structure**:
-  - `src/pages/` — major route components (`Home`, `PropertyDetails`, `AdminDashboard`, `CategoryListings`, guides, etc.)
-  - `src/pages/guides/` — SEO-optimised investor guide articles
-  - `src/components/` — reusable UI (`Navbar`, `VoiceWidget`, `FloatingContactButtons`, `SEO`, etc.)
-- **Data**: Supabase interactions via `src/services/supabaseClient.ts` and `PropertyService.ts`
+1. User opens the widget → browser opens WebSocket to Railway server
+2. Railway server opens a Gemini Live session (`ai.live.connect()`) — audio-only mode (`responseModalities: ["AUDIO"]`)
+3. Browser streams mic audio → Railway → Gemini. Gemini streams audio back → Railway → browser
+4. On session close: server logs to Google Sheets + Supabase (sessions + transcripts + insights tables)
 
-## 4. Voice AI — VoiceWidget (`src/components/VoiceWidget.tsx`)
+---
 
-The widget is a floating bottom-left panel that connects to the voice server via WebSocket.
+## Supabase Logging Project — Tables
 
-### Key behaviours
-- `if (!import.meta.env.DEV) return null` — guards the widget to dev only until Railway is live; remove this line to enable on the live site
-- WebSocket URL: `ws://localhost:3001` (dev) → `wss://[railway-url]` (production)
-- Sends page context silently on every route change so Yhen knows what page the user is on
-- On individual property pages, fetches full listing details from Supabase and sends them as context
-- Session kept alive when minimised — session only ends when the user clicks X
+### `sessions` table (Tier 2 data — basic engagement metrics)
+| Column | Type | Description |
+|---|---|---|
+| session_id | text | Unique session ID |
+| start_time | timestamptz | Session start |
+| searches | jsonb | Array of search parameter objects |
+| properties_shown | text[] | URLs of properties shown in widget |
+| properties_clicked | text[] | URLs of properties the user clicked on |
+| properties_clicked_count | integer | Count of distinct properties clicked |
+| whatsapp_opened | boolean | Whether WhatsApp was opened via AI |
+| name | text | Captured name (from WhatsApp flow) |
+| phone | text | Captured phone |
+| email | text | Captured email |
+| consent_given | boolean | Cookie consent |
+| consent_timestamp | timestamptz | When consent was given |
 
-### UI states
-- **idle** — floating mic button only (small footprint)
-- **connected** — panel expands automatically as content appears (dynamic height, max 580px desktop / full-screen mobile)
-- **minimised** — panel hidden, mic button remains with pulsing green ring animation
-- **muted** — mic button pulses red
+### `transcripts` table (Tier 3 data — raw conversation)
+| Column | Type | Description |
+|---|---|---|
+| session_id | text | Links to sessions table |
+| speaker | text | "ai" or "user" |
+| text | text | Full sentence (buffered — not word fragments) |
+| timestamp | timestamptz | Turn timestamp |
 
-### Panel features
-- Status bar with live indicator dot, mute button, minimise button, end-session (X) button
-- Speech transcript area (Yhen's responses + user text)
-- Text input field (type instead of speak)
-- Property cards (80×80px thumbnail + title/price/beds/location/link) — scrollable when multiple results
+### `insights` table (Tier 3 data — derived intelligence)
+| Column | Type | Description |
+|---|---|---|
+| session_id | text | Links to sessions table |
+| buyer_type | text | "investor" or "residential" (null if not determined) |
+| max_phase_reached | integer | 1, 2, or 3 — how deep the conversation went |
+| intent_score | integer | Number of searches run in the session |
 
-### Mobile
-- Full-screen panel (`position: fixed; inset: 0`) on `≤768px`
-- Floating mic button hidden while panel is open on mobile
+---
 
-## 5. Voice AI — Server (`voice-test/server.js`)
+## Google Sheet — Columns (Tier 2 only)
+A = Session ID | B = Start Time | C = End Time | D = Search Count | E = Properties Shown | F = WhatsApp Opened | G = Name | H = Phone | I = Email | J = Duration | K = Consent | L = Consent Timestamp | M = Properties Clicked (URLs) | N = Properties Clicked Count
 
-### Tools available to Gemini
-- `search_properties` — queries Supabase with filters (beds, baths, price, location, type, listing_type)
-- `show_listings` — sends property cards to the widget (always ask user first before calling)
-- `navigate_to` — navigates the React app to any page path (uses React Router on the frontend)
-- `open_whatsapp` — opens WhatsApp with a pre-filled message to Yhen
+---
 
-### Navigation with pre-filtered URLs
-When navigating to a category page after a filtered search, the server appends URL params so the page loads pre-filtered. CategoryListings reads these on mount.
+## Phase System
 
-Supported params: `minPrice`, `maxPrice`, `bedrooms`, `bathrooms`, `location`, `type`
+The conversation has three phases. The AI self-governs based on these rules in its system prompt. The server also monitors signals and sends silent context updates.
 
-Example: `/category/buy-houses?bedrooms=2&maxPrice=10000000&location=BGC`
+### Phase 1 — Pure assistant
+Default state. Only answers what is asked. No qualifying questions, no viewing suggestions, no contact prompts.
 
-### Session management
-- **Inactivity timeout**: 3 minutes (warns at 30 seconds before)
-- **Max session length**: 15 minutes (warns at 1 minute before)
-- Warnings spoken by Yhen and displayed as notifications in the widget
-- IP rate limiting: discussed, not yet built
+### Phase 2 — Depth question asked
+**Trigger:** User asks a depth question (parking, schools, taxes, payment terms, HOA fees, specific listing details).
+**What happens:** Gemini weaves in ONE natural qualifying question: *"I'm looking that up for you — are you thinking of this for yourself, or more as an investment? I want to make sure I highlight the right features."*
+**If ignored:** Drops it immediately, never asks again.
+**Server action:** If user answers, Gemini calls `update_lead_state` tool silently → `buyer_type` saved to `insights` table + `maxPhaseReached` updated to 2.
 
-### Property search quirks
-- House search uses `.or('type.ilike.%house%,type.ilike.%villa%').not('type','ilike','%warehouse%')` to avoid warehouse matching
-- Houses and villas are treated as the same category for search purposes
+### Phase 3 — High intent
+**Triggers (any one of these):**
+- `intentScore >= 3` (3 or more searches run in the session)
+- Same listing clicked twice by the user
+- User asks about viewings, payment plans, or next steps
 
-## 6. CategoryListings (`src/pages/CategoryListings.tsx`)
-- Reads URL params on mount and applies them as filters immediately
-- Supports: `minPrice`, `maxPrice`, `beds`/`bedrooms`, `baths`/`bathrooms`, `location`, `type`, `property_type=studio`
-- House type filter includes Villa: `['House', 'Villa'].includes(p.type)`
-- Advanced filters panel: sqft range, lot size, date listed, sort, amenities (from `custom_amenities` Supabase table)
+**What happens:** Gemini suggests once: *"This one keeps coming up — would you like me to arrange a viewing with Yhen?"* Never repeats if ignored.
+**Server action:** Sends silent context update to Gemini, sets `maxPhaseReached` to 3.
 
-## 7. Design & Styling Guidelines
-- **Theme**: Light and Dark mode via Tailwind `dark:` classes
-- **Brand colour**: Lime Green (`#0df259` in widget, `#3DFF00` Tailwind primary) for highlights, logos, hover states
-- **Logos**: `public/Image/LimeLogo2.svg`, `public/Image/LimeLogo_YP_1200.png`
-- **Contact**: Floating WhatsApp buttons are critical for conversion
+---
 
-## 8. SEO / AEO
-- All pages use `src/components/SEO.tsx` wrapper for meta tags
-- Guide pages include JSON-LD structured data (`Article`, `FAQPage`) injected server-side via Netlify edge function for bot visibility
-- Automated sitemap via `generate-sitemap.ts` for Google Search Console
-- Image uploads use `browser-image-compression` to optimise mobile bandwidth
+## Tools Available to Gemini
 
-## 9. Development Rules for AI Agents
-1. **Verify paths** before assuming — use Read/Glob tools, files live in `src/`
-2. **Tailwind only** — use existing utility classes, avoid custom CSS unless necessary, always handle light and dark mode
-3. **Preserve SEO** — any new or modified page must have `SEO.tsx` updated with correct meta tags and JSON-LD
-4. **TypeScript** — define interfaces in `src/types.ts`, avoid `any`
-5. **No page navigation in template widget** — the `navigate_to` tool and React Router `useNavigate` are Yhen-specific; strip them from the standalone `widget.js` template
-6. **Widget guard** — `if (!import.meta.env.DEV) return null` must be removed before going live; do not remove it until the Railway URL is confirmed and set
+| Tool | What it does |
+|---|---|
+| `search_properties` | Queries Supabase listings DB with filters (beds, baths, type, location, price, listing_type) |
+| `show_listings` | Sends property cards to the browser widget — never narrated, called silently |
+| `open_whatsapp` | Opens WhatsApp with pre-filled message. Follows 7-step contact capture flow. |
+| `navigate_to` | Navigates browser to an informational page (Contact, About, Sell, Guides, Inventory). Never used for listing pages. |
+| `update_lead_state` | Silent tool — called when user reveals buyer type. Writes to insights table. No audio response. |
+
+---
+
+## WhatsApp Contact Capture Flow (7 steps)
+Before calling `open_whatsapp`, Gemini always follows these steps:
+0. Confirm which property (best guess from conversation — never ask blankly)
+1. Ask what they'd like to say to Yhen
+2. Ask for their name
+3. Ask for their number
+4. Ask for their email
+5. Read back the full draft message for confirmation
+6. Call `open_whatsapp` with formatted message including property title + URL on its own line
+
+---
+
+## Session Limits
+- Max session: 15 minutes (then ends with audio notification)
+- Inactivity timeout: 3 minutes of silence
+- Warning: 1 minute before max session, 30 seconds before inactivity cutoff
+
+---
+
+## Tier Model (Business)
+- **Tier 1** — AI widget only. No reporting. No Google Sheet needed.
+- **Tier 2** — Weekly email report. Pulls from `sessions` table + Google Sheet. Basic engagement metrics. Does NOT get transcript or insights data.
+- **Tier 3** — AI analysis. Pulls from `sessions` + `transcripts` + `insights`. Full buyer profiling, conversation analysis. Raw transcript data stays with Yhen — clients get AI-generated insights only.
+
+---
+
+## Key Architecture Decisions
+- **Two separate Supabase projects** — listings DB (client-visible) vs logging DB (Yhen-only). Never mix them.
+- **Audio-only mode** — Gemini outputs audio only (`responseModalities: ["AUDIO"]`). No parseable text stream. Any hidden JSON or [[STATE]] block ideas won't work without changing the response modality.
+- **Context caching not available** — Gemini Live API does not support `cachedContent` as of April 2026. System prompt is sent fresh on every `ai.live.connect()` call.
+- **Google Sheets runs alongside Supabase** — Sheets is Tier 2 session data only. Supabase captures everything including transcripts and insights.
+- **Railway deployment** — always deploy from the `voice-test` directory: `cd voice-test && railway up --service cooperative-vibrancy --detach`
+- **Both GitHub remotes** — always push to both: `git push origin main && git push yhensproperty main` (Netlify watches the `yhensproperty` remote)
+- **Transcript buffering** — `outputTranscription` fires per token. Chunks are buffered in `currentAiTurn` and flushed as a full sentence on `turnComplete`. System messages are filtered before logging.

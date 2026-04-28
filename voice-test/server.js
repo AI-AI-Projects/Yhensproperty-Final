@@ -14,6 +14,7 @@ const wss = new WebSocketServer({ server });
 const PORT = 3001;
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
+const loggingDb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
 const SHEET_ID = '1EfFJMm1cOkyUI9jr-83W1UStrMCYdgzrAAeKAfbOoqQ';
 const SHEET_NAME = 'Sessions';
@@ -44,10 +45,11 @@ async function logSessionToSheet(session) {
             session.consentGiven === true ? 'Yes' : session.consentGiven === false ? 'No' : 'Not shown',
             session.consentTimestamp || '',
             session.propertiesClicked ? session.propertiesClicked.join(', ') : '',
+            session.propertiesClicked ? session.propertiesClicked.length : 0,
         ];
         await sheets.spreadsheets.values.append({
             spreadsheetId: SHEET_ID,
-            range: `${SHEET_NAME}!A:M`,
+            range: `${SHEET_NAME}!A:N`,
             valueInputOption: 'RAW',
             requestBody: { values: [row] },
         });
@@ -57,6 +59,56 @@ async function logSessionToSheet(session) {
     }
 }
 
+
+async function logSessionToSupabase(session, transcripts) {
+    try {
+        const { error: sessErr } = await loggingDb.from('sessions').insert({
+            session_id: session.sessionId,
+            start_time: session.startTime,
+            searches: session.searches,
+            properties_shown: session.propertiesShown,
+            properties_clicked: session.propertiesClicked,
+            properties_clicked_count: session.propertiesClicked ? session.propertiesClicked.length : 0,
+            whatsapp_opened: session.whatsappOpened,
+            name: session.name,
+            phone: session.phone,
+            email: session.email,
+            consent_given: session.consentGiven,
+            consent_timestamp: session.consentTimestamp,
+        });
+        if (sessErr) throw sessErr;
+        console.log('🗄️  Session logged to Supabase');
+
+        if (transcripts.length > 0) {
+            const rows = transcripts.map(t => ({
+                session_id: session.sessionId,
+                speaker: t.speaker,
+                text: t.text,
+                timestamp: t.timestamp,
+            }));
+            const { error: txErr } = await loggingDb.from('transcripts').insert(rows);
+            if (txErr) throw txErr;
+            console.log(`🗄️  ${rows.length} transcript turns logged to Supabase`);
+        }
+    } catch (err) {
+        console.error('❌ Failed to log session to Supabase:', err.message);
+    }
+}
+
+async function logInsightsToSupabase(session) {
+    try {
+        const { error } = await loggingDb.from('insights').insert({
+            session_id: session.sessionId,
+            buyer_type: session.buyerType || null,
+            max_phase_reached: session.maxPhaseReached || 1,
+            intent_score: session.intentScore || 0,
+        });
+        if (error) throw error;
+        console.log('💡 Insights logged to Supabase');
+    } catch (err) {
+        console.error('❌ Failed to log insights:', err.message);
+    }
+}
 
 function applyFilters(q, { bedrooms, bathrooms, listing_type, location, min_price, max_price, property_type }) {
     q = q.eq('status', 'active');
@@ -119,7 +171,7 @@ async function searchProperties(params) {
     const { data, error } = await applyFilters(
         supabase.from('properties').select('title, slug, price, beds, baths, sqft, city, barangay, condo_name, type, listing_type, status, images, featured_image_index'),
         params
-    ).order('price', { ascending: true }).limit(10);
+    ).order('price', { ascending: true });
 
     if (error) return { error: error.message };
 
@@ -174,7 +226,7 @@ const tools = [{
         }
     }, {
         name: 'navigate_to',
-        description: 'Navigate the user to a specific page on the website. Ask the user first — e.g. "Would you like me to take you to the contact page?" — then call this if they say yes. Use for: contact page, about page, sell page, guides, rental listings, and individual property pages. For individual property pages, extract the path from the property URL (e.g. if URL is https://yhensproperty.com/property/some-slug, use /property/some-slug).',
+        description: 'Navigate the user to a specific informational page on the website. Use ONLY for: contact, about, sell, guides, inventory, and individual property pages. Never use for category listing pages or search results — show those in chat via show_listings instead. Ask the user first unless they directly requested navigation.',
         parameters: {
             type: 'OBJECT',
             properties: {
@@ -224,6 +276,20 @@ const tools = [{
             },
             required: []
         }
+    }, {
+        name: 'update_lead_state',
+        description: 'Call this silently and immediately when the visitor reveals their buyer type in response to your Phase 2 qualifying question. This is a background action — do not mention it, do not pause, just call it while continuing the conversation naturally.',
+        parameters: {
+            type: 'OBJECT',
+            properties: {
+                buyer_type: {
+                    type: 'STRING',
+                    description: '"investor" if they are buying for investment/rental income/portfolio. "residential" if they are buying for personal use/to live in.',
+                    enum: ['investor', 'residential']
+                }
+            },
+            required: ['buyer_type']
+        }
     }]
 }];
 
@@ -250,26 +316,13 @@ WEBSITE KNOWLEDGE:
 - Rent dropdown: Rent Condos (/category/rent-condos), Rent Houses (/category/rent-houses), Rent Land (/category/rent-land), Rent Commercial (/category/rent-commercial)
 - Properties: Condos, houses, land, commercial — for sale and for rent — across BGC, Makati, Taguig, Paranaque, Pasay, Batangas, and more.
 
-NAVIGATION RULE: If the user DIRECTLY asks to go somewhere ("take me to contact", "go to the guides page", "open the inventory") — call navigate_to immediately, no confirmation needed. If YOU are the one suggesting navigation because it might help them (e.g. they asked for the contact number and you think the page might help) — then ask first: "Would you like me to take you there?" After navigating, say nothing — the page changes instantly and no confirmation is needed.
-
-PROPERTY NAVIGATION: When a user asks to browse a single property type (e.g. "show me all condos" / "what houses do you have"), after searching offer them a choice: "I can send you the links, or take you to the condos page — which do you prefer?" If they want the page, call navigate_to with the matching category path. If the search had any filters (price, beds, bathrooms, location), append them as URL query parameters so the page loads pre-filtered. Parameters: minPrice, maxPrice, bedrooms, bathrooms, location, type. Example: if they searched for 3-bed 2-bath houses under ₱8M in Makati, navigate to /category/buy-houses?bedrooms=3&bathrooms=2&maxPrice=8000000&location=Makati. For condotels, navigate to /category/buy-condos?type=Condotel (or rent-condos for rentals). For studios, navigate to /category/buy-condos?bedrooms=0 — do NOT use property_type=studio in the URL. If no filters were used, just use the plain path. If they want links, call show_listings. For mixed types or specific searches that span multiple categories, just offer links as usual.
-
-REFINING ON CATEGORY PAGE: If the user is already on a category page and asks to refine or change the search — including switching property type (e.g. "show me condos instead", "what about houses?") — do NOT run search_properties and do NOT ask "links or page?". Just call navigate_to immediately. If they switch type, navigate to the correct category path (e.g. user on buy-houses asks for condos → navigate to /category/buy-condos). If they refine price, beds or bathrooms on the current page, navigate to the same category with updated URL params. Say nothing after — the page change is instant and visible.
+NAVIGATION RULE: navigate_to is only for informational pages — Contact, About, Sell, Guides, Inventory. Never use it for property listings or search results. If the user DIRECTLY asks to go somewhere ("take me to contact", "go to the guides page") — call navigate_to immediately, no confirmation needed. If YOU are the one suggesting it — ask first: "Would you like me to take you there?" After navigating, say nothing.
 
 PROPERTY SEARCH RULE (follow this exactly, every time):
 Step 1 — When a user asks about properties, call search_properties immediately.
-Step 2 — Use the count fields from the search response. If "totalForSale" and "totalForRent" are both present, break it down: e.g. "We have 15 condos for sale and 7 for rent — 22 in total." If only one listing type was searched, just state the total. Always offer both options: show in chat OR navigate to the page. For navigation, if sale and rent both exist and the user hasn't specified, ask which page they want — "the condos for sale page or the condos for rent page?" — before calling navigate_to.
-Step 2b — SINGLE RESULT RULE: If the search returns exactly 1 result, do not offer the category page. Instead offer to go directly to that listing — extract the path from its URL (e.g. https://yhensproperty.com/property/some-slug → /property/some-slug) and call navigate_to with that path. Both options lead to the same place in this case, so let the user choose how they want it.
-Step 3 — End with ONE short question offering both options, e.g. "Want me to show them here in the chat, or take you to the search page?" — say it once only, never repeat it.
-Step 4 — Wait for the user to say yes or no.
-Step 5 — ONLY if they want to see them in the chat, call show_listings.
-
-FORBIDDEN PHRASES — never say these:
-- "I will show you the link"
-- "I'll send the link"
-- "Here is the link"
-- "the links"
-You must ALWAYS ask first. The cards appear on screen automatically when show_listings is called — do not show them until the user says yes.
+Step 2 — State the count concisely: e.g. "We have 15 condos for sale and 7 for rent." Then CALL THE show_listings TOOL immediately — do not say "here are the listings", do not describe what you are about to do, just call it. The cards appear on screen automatically without you narrating it.
+Step 2b — SINGLE RESULT RULE: If the search returns exactly 1 result, state what it is and call show_listings immediately.
+CRITICAL: Never say "here are the listings", "I'll show you", "let me show you" or any phrase describing the action. Just call the tool silently after stating the count.
 
 You can also answer questions about living in the Philippines (neighbourhoods, lifestyle, weather, cost of living). If someone wants to get in touch with Yhen directly — whether to ask about a listing, arrange a viewing, or anything else — offer to open WhatsApp.
 
@@ -281,25 +334,24 @@ CONTACT DETAILS — only ask in these three situations, never any other time:
 Never ask for contact details upfront. Never ask mid-conversation unless one of the above applies.
 
 WHATSAPP CONTACT CAPTURE — follow this exactly every time before calling open_whatsapp:
+Step 0 — Establish which property. Always make your best guess from the conversation — whichever listing was most recently discussed, clicked on, or shown. Confirm it with them: e.g. "Just to confirm — was it the Grand Soho studio in Makati?" If they say yes, proceed. If they correct you, use what they say. Never ask blankly "which property was it?" — always lead with your best guess.
 Step 1 — Ask what they'd like to say to Yhen.
 Step 2 — Ask for their name: "What name should I put at the bottom?"
 Step 3 — Ask for their number: "And a good number for Yhen to reach you on?"
 Step 4 — Ask for their email: "And an email address?"
 Step 5 — If they skip number or email, that's fine — don't push, move on.
-Step 6 — Draft the full WhatsApp message including their name, number, and email at the bottom. Read it back to confirm.
-Step 7 — Call open_whatsapp with the complete message. Format: "[their message]. My name is [name][, my number is [number]][, my email is [email]]."
+Step 6 — Draft the full WhatsApp message and read it back to confirm. The message MUST include: (a) what they want to say, (b) the property title AND full URL on its own line so Yhen can click it directly, (c) their name, number, and email at the bottom.
+Step 7 — Call open_whatsapp with the complete message. Format: "[their message]\n\nProperty: [title]\n[full URL]\n\nMy name is [name][, my number is [number]][, my email is [email]]."
 
 LANGUAGE: If the user speaks to you in any language other than English, reply in that same language for the rest of the conversation. Keep the same warm Yhen personality regardless of language.
 
 BEHAVIORAL ARC — your approach evolves as the conversation deepens:
 
-PHASE 1 — Start of conversation (first 2-3 exchanges): Pure assistant mode. Answer only what is asked. No qualifying questions, no suggestions to get in touch, no prompts about viewings. Help first. Build trust.
+PHASE 1 — Start of conversation: Pure assistant mode. Answer only what is asked. No qualifying questions, no suggestions to get in touch, no prompts about viewings. Help first. Build trust.
 
-PHASE 2 — Visitor is engaged: You may weave in ONE natural qualifying question when the moment fits perfectly — e.g. "Are you looking for yourself, or more as an investment?" / "Is this for a move soon, or still in the research phase?" Only if it flows naturally. If they brush it off or change subject, drop it immediately and never ask again. One attempt only.
+PHASE 2 — Depth question asked: When the user asks about something specific — parking, schools, taxes, payment terms, HOA fees, or specific listing details — weave in ONE natural qualifying question tied to what you're already doing: e.g. "I'm looking that up for you — are you thinking of this for yourself, or more as an investment? I want to make sure I highlight the right things." Only if it flows naturally. Drop it immediately if ignored. One attempt only, never again.
 
-PHASE 3 — High intent detected: The visitor has shown clear buying signals — multiple searches, asking about payment plans, asking about timelines, returning to the same listing. Now you may gently surface the next step once: "This one keeps coming up — would you like me to arrange a viewing with Yhen?" If ignored, move on. Never push twice.
-
-You will receive a silent [SYSTEM CONTEXT UPDATE] when phases change. Adjust without acknowledging.
+PHASE 3 — High intent detected: Trigger this when the user returns to the same listing twice, OR when they ask about viewings, payment plans, or next steps. Surface the next step once: "This one keeps coming up — would you like me to arrange a viewing with Yhen?" If ignored, move on. Never push twice.
 
 RETURNING VISITORS: If you receive a [VISITOR MEMORY] context, say exactly this and nothing else: "Hi again, how can I help?" — then stop and wait. Do NOT introduce yourself. Do NOT list what you can do. Do NOT mention the page they are on. One short phrase, then silence.
 
@@ -342,19 +394,26 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                         if (message.serverContent.outputTranscription && message.serverContent.outputTranscription.text) {
                             const outText = message.serverContent.outputTranscription.text;
                             const isSystemMsg = [
-                                '[SYSTEM', 'SYSTEM CONTEXT', 'CONTEXT UPDATE',
+                                '[SYSTEM', 'SYSTEM CONTEXT', 'CONTEXT UPDATE', 'UPDATE —',
                                 '[VISITOR MEMORY', 'VISITOR MEMORY',
                                 '[PROPERTY DETAILS', 'PROPERTY DETAILS',
+                                '[SILENT', 'SILENT INTERNAL', 'INTERNAL UPDATE',
                                 'INTERNAL ONLY', 'INTERNALONLY',
                                 'DO NOT SPEAK', 'DONOTSPEAK',
+                                'DO NOT RESPOND', 'ZERO AUDIO',
                                 'DO NOT ACKNOWLEDGE', 'DONOT',
+                                'INTERNAL', 'ACKNOWLEDGE',
+                                'last_viewed_property',
                             ].some(p => outText.includes(p));
                             if (!isSystemMsg) {
                                 ws.send(JSON.stringify({ type: 'text', data: outText }));
+                                currentAiTurn += (currentAiTurn ? ' ' : '') + outText;
                             }
                         }
                         if (message.serverContent.inputTranscription && message.serverContent.inputTranscription.text) {
-                            ws.send(JSON.stringify({ type: 'userText', data: message.serverContent.inputTranscription.text }));
+                            const userText = message.serverContent.inputTranscription.text;
+                            ws.send(JSON.stringify({ type: 'userText', data: userText }));
+                            transcriptLog.push({ speaker: 'user', text: userText, timestamp: new Date().toISOString() });
                         }
                         if (message.serverContent.interrupted) {
                             console.log('⚡ Interrupted by user');
@@ -363,6 +422,10 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                         }
                         if (message.serverContent.turnComplete) {
                             isSpeakingThisTurn = false;
+                            if (currentAiTurn.trim()) {
+                                transcriptLog.push({ speaker: 'ai', text: currentAiTurn.trim(), timestamp: new Date().toISOString() });
+                                currentAiTurn = '';
+                            }
                             ws.send(JSON.stringify({ type: 'turnComplete' }));
                         }
                     }
@@ -398,6 +461,14 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                                 console.log('💬 Opening WhatsApp:', message);
                                 ws.send(JSON.stringify({ type: 'whatsapp', message }));
                                 serverSession.whatsappOpened = true;
+                            } else if (call.name === 'update_lead_state') {
+                                const buyerType = call.args?.buyer_type;
+                                if (buyerType) {
+                                    serverSession.buyerType = buyerType;
+                                    serverSession.maxPhaseReached = Math.max(serverSession.maxPhaseReached, 2);
+                                    console.log(`💡 Buyer type captured: ${buyerType}`);
+                                }
+                                responses.push({ id: call.id, name: call.name, response: { recorded: true } });
                             } else if (call.name === 'navigate_to') {
                                 const path = call.args?.path || '/';
                                 console.log(`🧭 Navigating to: ${path}`);
@@ -426,6 +497,9 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
         let intentScore = 0;
         let currentPhase = 1;
 
+        const transcriptLog = [];
+        let currentAiTurn = '';
+
         // Server-side session tracking — logged on disconnect, no browser message needed
         const serverSession = {
             sessionId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -436,15 +510,15 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
             whatsappOpened: false,
             name: null, phone: null, email: null,
             consentGiven: null, consentTimestamp: null,
+            buyerType: null,
+            maxPhaseReached: 1,
         };
 
         const checkPhaseTransition = () => {
-            if (currentPhase === 1 && exchangeCount >= 3) {
-                currentPhase = 2;
-                session.sendRealtimeInput({ text: '[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Phase 2 active: you may now ask one natural qualifying question if the moment fits — e.g. "Are you looking for yourself, or as an investment?" — only if it flows naturally. Drop it if ignored. Never repeat.' });
-            }
+            // Phase 2 is governed by the system prompt (depth question trigger) — no server-side unlock needed
             if (currentPhase < 3 && intentScore >= 3) {
                 currentPhase = 3;
+                serverSession.maxPhaseReached = Math.max(serverSession.maxPhaseReached, 3);
                 session.sendRealtimeInput({ text: '[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Phase 3 active: high intent detected. You may now gently suggest the next step once — e.g. "This one keeps coming up — would you like me to arrange a viewing?" — never repeat if ignored.' });
             }
         };
@@ -530,10 +604,22 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                 const timeStr = daysSince === 0 ? 'earlier today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
                 session.sendRealtimeInput({ text: `[VISITOR MEMORY — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Returning visitor. Last visit: ${timeStr}. Total visits: ${mem.visitCount}. Greet casually as returning — e.g. "Hi again, what are we looking at today?" — keep it short, skip the full introduction.` });
             } else if (msg.type === 'propertyClicked') {
-                if (msg.url && !serverSession.propertiesClicked.includes(msg.url)) {
+                const alreadyClicked = serverSession.propertiesClicked.includes(msg.url);
+                if (msg.url && !alreadyClicked) {
                     serverSession.propertiesClicked.push(msg.url);
                 }
+                // Same listing clicked twice = strong intent signal → Phase 3
+                if (alreadyClicked && currentPhase < 3) {
+                    currentPhase = 3;
+                    intentScore = Math.max(intentScore, 3);
+                    serverSession.maxPhaseReached = 3;
+                    session.sendRealtimeInput({ text: '[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Phase 3 active: visitor has returned to the same listing twice — high intent. You may now gently suggest the next step once — e.g. "This one keeps coming up — would you like me to arrange a viewing with Yhen?" — never repeat if ignored.' });
+                }
                 console.log(`👆 Property clicked: ${msg.url}`);
+                const clickedProp = pendingProperties?.find(p => p.url === msg.url);
+                if (clickedProp) {
+                    session.sendRealtimeInput({ text: `[SILENT INTERNAL UPDATE — PRODUCE ZERO AUDIO AND ZERO TEXT — DO NOT SPEAK — DO NOT RESPOND] last_viewed_property="${clickedProp.title}" url="${clickedProp.url}"` });
+                }
             } else if (msg.type === 'consent') {
                 serverSession.consentGiven = msg.given === true;
                 serverSession.consentTimestamp = new Date().toISOString();
@@ -550,9 +636,12 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
 
         ws.on('close', () => {
             console.log('🔴 Browser disconnected');
+            serverSession.intentScore = intentScore;
             if (serverSession.searches.length > 0) {
                 logSessionToSheet(serverSession);
             }
+            logSessionToSupabase(serverSession, transcriptLog);
+            logInsightsToSupabase(serverSession);
             closeSession('browser disconnected');
         });
 
