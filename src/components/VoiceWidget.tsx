@@ -665,7 +665,7 @@ export const VoiceWidget: React.FC = () => {
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 overflowY: 'auto',
                 flexShrink: 0,
-                maxHeight: '280px',
+                maxHeight: '360px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px',
