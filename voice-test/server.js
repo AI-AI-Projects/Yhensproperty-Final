@@ -95,13 +95,44 @@ async function logSessionToSupabase(session, transcripts) {
     }
 }
 
+function calculateConversationDepth(session) {
+    if (session.whatsappOpened || session.phone || session.email) return 4;
+    if (session.sameListingClickedTwice) return 3;
+    if (session.buyerType) return 2;
+    return 1;
+}
+
+function calculateLeadIntentScore(session) {
+    let score = 0;
+    if (session.whatsappOpened) score += 40;
+    if (session.sameListingClickedTwice) score += 20;
+    if (session.budgetMentioned) score += 15;
+    if (session.timelineMentioned) score += 10;
+    if (session.buyerType) score += 10;
+    score += Math.min(session.searches.length, 5);
+    return Math.min(score, 100);
+}
+
+function calculateStrongestSignals(session) {
+    const signals = [];
+    if (session.whatsappOpened) signals.push('whatsapp_opened');
+    if (session.sameListingClickedTwice) signals.push('same_listing_twice');
+    if (session.budgetMentioned) signals.push('budget_given');
+    if (session.timelineMentioned) signals.push('timeline_given');
+    if (session.buyerType) signals.push('buyer_type_given');
+    if (session.searches.length >= 3) signals.push('multiple_searches');
+    if (session.propertiesClicked.length >= 3) signals.push('multiple_properties_clicked');
+    return signals;
+}
+
 async function logInsightsToSupabase(session) {
     try {
         const { error } = await loggingDb.from('insights').insert({
             session_id: session.sessionId,
             buyer_type: session.buyerType || null,
-            max_phase_reached: session.maxPhaseReached || 1,
-            intent_score: session.intentScore || 0,
+            conversation_depth: calculateConversationDepth(session),
+            lead_intent_score: calculateLeadIntentScore(session),
+            strongest_signals: calculateStrongestSignals(session),
             languages: session.languages,
             budget_mentioned: session.budgetMentioned || null,
             timeline_mentioned: session.timelineMentioned || null,
@@ -484,7 +515,6 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                                 const { buyer_type, language, budget_mentioned, timeline_mentioned } = call.args || {};
                                 if (buyer_type) {
                                     serverSession.buyerType = buyer_type;
-                                    serverSession.maxPhaseReached = Math.max(serverSession.maxPhaseReached, 2);
                                     console.log(`💡 Buyer type: ${buyer_type}`);
                                 }
                                 if (language && !serverSession.languages.includes(language)) {
@@ -542,19 +572,14 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
             name: null, phone: null, email: null,
             consentGiven: null, consentTimestamp: null,
             buyerType: null,
-            maxPhaseReached: 1,
+            sameListingClickedTwice: false,
             languages: ['en'],
             budgetMentioned: null,
             timelineMentioned: null,
         };
 
         const checkPhaseTransition = () => {
-            // Phase 2 is governed by the system prompt (depth question trigger) — no server-side unlock needed
-            if (currentPhase < 3 && intentScore >= 3) {
-                currentPhase = 3;
-                serverSession.maxPhaseReached = Math.max(serverSession.maxPhaseReached, 3);
-                session.sendRealtimeInput({ text: '[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Phase 3 active: high intent detected. You may now gently suggest the next step once — e.g. "This one keeps coming up — would you like me to arrange a viewing?" — never repeat if ignored.' });
-            }
+            // Phases are governed by system prompt and behavioral signals — not search count
         };
 
         // Session limits
@@ -645,8 +670,7 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                 // Same listing clicked twice = strong intent signal → Phase 3
                 if (alreadyClicked && currentPhase < 3) {
                     currentPhase = 3;
-                    intentScore = Math.max(intentScore, 3);
-                    serverSession.maxPhaseReached = 3;
+                    serverSession.sameListingClickedTwice = true;
                     session.sendRealtimeInput({ text: '[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Phase 3 active: visitor has returned to the same listing twice — high intent. You may now gently suggest the next step once — e.g. "This one keeps coming up — would you like me to arrange a viewing with Yhen?" — never repeat if ignored.' });
                 }
                 console.log(`👆 Property clicked: ${msg.url}`);
@@ -670,7 +694,6 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
 
         ws.on('close', () => {
             console.log('🔴 Browser disconnected');
-            serverSession.intentScore = intentScore;
             if (serverSession.searches.length > 0) {
                 logSessionToSheet(serverSession);
             }
