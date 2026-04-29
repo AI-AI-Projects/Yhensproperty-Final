@@ -125,7 +125,7 @@ export const VoiceWidget: React.FC = () => {
   const [modalPhotoIndex, setModalPhotoIndex] = useState(0);
   const [isModalExpanded, setIsModalExpanded] = useState(false);
   const [whatsappDraft, setWhatsappDraft] = useState<string | null>(null);
-  const [viewportHeight, setViewportHeight] = useState<number>(window.innerHeight);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -137,10 +137,15 @@ export const VoiceWidget: React.FC = () => {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setViewportHeight(vv.height);
+    const update = () => {
+      const kh = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardHeight(kh);
+      if (kh > 0 && chatRef.current) {
+        chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      }
+    };
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);
-    update();
     return () => {
       vv.removeEventListener('resize', update);
       vv.removeEventListener('scroll', update);
@@ -151,7 +156,7 @@ export const VoiceWidget: React.FC = () => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
-  }, [viewportHeight, speechText]);
+  }, [speechText]);
 
   useEffect(() => {
     const onBeforeUnload = () => {
@@ -480,7 +485,7 @@ export const VoiceWidget: React.FC = () => {
       <div style={{
         position: 'fixed',
         ...(isMobile && panelOpen
-          ? { top: 0, left: 0, right: 0, height: `${viewportHeight}px`, alignItems: 'stretch' }
+          ? { top: 0, left: 0, right: 0, height: `calc(100vh - ${keyboardHeight}px)`, alignItems: 'stretch' }
           : isMobile
             ? { bottom: '160px', right: '20px', alignItems: 'flex-end' }
             : { bottom: '24px', left: '24px', alignItems: 'flex-start' }),
