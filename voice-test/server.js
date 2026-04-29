@@ -270,6 +270,18 @@ const tools = [{
                 message: {
                     type: 'STRING',
                     description: 'The pre-filled message to send, written as if from the customer. E.g. "Hi Yhen! I\'m interested in the 2-bedroom condo in BGC. Can I arrange a viewing?"'
+                },
+                name: {
+                    type: 'STRING',
+                    description: 'The name the user gave during the contact capture flow.'
+                },
+                phone: {
+                    type: 'STRING',
+                    description: 'The phone number the user gave during the contact capture flow.'
+                },
+                email: {
+                    type: 'STRING',
+                    description: 'The email address the user gave during the contact capture flow.'
                 }
             },
             required: ['message']
@@ -425,7 +437,7 @@ Step 3 — Ask for their number: "And a good number for Yhen to reach you on?"
 Step 4 — Ask for their email: "And an email address?"
 Step 5 — If they skip number or email, that's fine — don't push, move on.
 Step 6 — Draft the full WhatsApp message and read it back to confirm. The message MUST include: (a) what they want to say, (b) the property title AND full URL on its own line so Yhen can click it directly, (c) their name, number, and email at the bottom.
-Step 7 — Call open_whatsapp with the complete message. Format: "[their message]\n\nProperty: [title]\n[full URL]\n\nMy name is [name][, my number is [number]][, my email is [email]]."
+Step 7 — Call open_whatsapp with the complete message AND pass name, phone, email as separate fields if collected. Format for message: "[their message]\n\nProperty: [title]\n[full URL]\n\nMy name is [name][, my number is [number]][, my email is [email]]." Always pass name, phone, email as structured fields even if they also appear in the message text.
 
 LANGUAGE: If the user speaks to you in any language other than English, reply in that same language for the rest of the conversation. Keep the same warm Yhen personality regardless of language. Whenever the user speaks in a non-English language, silently call update_lead_state with the language code immediately.
 
@@ -483,21 +495,23 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                         }
                         if (message.serverContent.outputTranscription && message.serverContent.outputTranscription.text) {
                             const outText = message.serverContent.outputTranscription.text;
-                            const isSystemMsg = [
-                                '[SYSTEM', 'SYSTEM CONTEXT', 'CONTEXT UPDATE', 'UPDATE —',
+                            const accumulated = currentAiTurn + (currentAiTurn ? ' ' : '') + outText;
+                            const SYSTEM_KEYWORDS = [
+                                '[SYSTEM', 'SYSTEM CONTEXT', 'CONTEXT UPDATE',
                                 '[VISITOR MEMORY', 'VISITOR MEMORY',
                                 '[PROPERTY DETAILS', 'PROPERTY DETAILS',
                                 '[SILENT', 'SILENT INTERNAL', 'INTERNAL UPDATE',
-                                'INTERNAL ONLY', 'INTERNALONLY',
-                                'DO NOT SPEAK', 'DONOTSPEAK',
-                                'DO NOT RESPOND', 'ZERO AUDIO',
-                                'DO NOT ACKNOWLEDGE', 'DONOT',
-                                'INTERNAL', 'ACKNOWLEDGE',
-                                'last_viewed_property',
-                            ].some(p => outText.includes(p));
-                            if (!isSystemMsg) {
+                                'INTERNAL ONLY', 'DO NOT SPEAK', 'DO NOT RESPOND',
+                                'ZERO AUDIO', 'DO NOT ACKNOWLEDGE',
+                                'INTERNAL', 'last_viewed_property', 'PRODUCE ZERO',
+                                'UPDATE —', 'CONTEXT —',
+                            ];
+                            if (SYSTEM_KEYWORDS.some(p => accumulated.includes(p))) {
+                                systemTurnDetected = true;
+                            }
+                            if (!systemTurnDetected) {
                                 ws.send(JSON.stringify({ type: 'text', data: outText }));
-                                currentAiTurn += (currentAiTurn ? ' ' : '') + outText;
+                                currentAiTurn = accumulated;
                             }
                         }
                         if (message.serverContent.inputTranscription && message.serverContent.inputTranscription.text) {
@@ -512,10 +526,12 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                         }
                         if (message.serverContent.turnComplete) {
                             isSpeakingThisTurn = false;
-                            if (currentAiTurn.trim()) {
+                            if (systemTurnDetected) {
+                                systemTurnDetected = false;
+                            } else if (currentAiTurn.trim()) {
                                 transcriptLog.push({ speaker: 'ai', text: currentAiTurn.trim(), timestamp: new Date().toISOString() });
-                                currentAiTurn = '';
                             }
+                            currentAiTurn = '';
                             ws.send(JSON.stringify({ type: 'turnComplete' }));
                         }
                     }
@@ -551,6 +567,10 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                                 console.log('💬 Opening WhatsApp:', message);
                                 ws.send(JSON.stringify({ type: 'whatsapp', message }));
                                 serverSession.whatsappOpened = true;
+                                if (call.args?.name) serverSession.name = call.args.name;
+                                if (call.args?.phone) serverSession.phone = call.args.phone;
+                                if (call.args?.email) serverSession.email = call.args.email;
+                                responses.push({ id: call.id, name: call.name, response: { opened: true } });
                             } else if (call.name === 'update_lead_state') {
                                 const { buyer_type, language, budget_mentioned, budget_min, budget_max, timeline_mentioned, timeline_bucket, viewing_requested, financing_mentioned } = call.args || {};
                                 if (buyer_type) { serverSession.buyerType = buyer_type; console.log(`💡 Buyer type: ${buyer_type}`); }
@@ -593,6 +613,7 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
 
         const transcriptLog = [];
         let currentAiTurn = '';
+        let systemTurnDetected = false;
 
         // Server-side session tracking — logged on disconnect, no browser message needed
         const serverSession = {
@@ -709,13 +730,11 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                 if (alreadyClicked && currentPhase < 3) {
                     currentPhase = 3;
                     serverSession.sameListingClickedTwice = true;
-                    session.sendRealtimeInput({ text: '[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] Phase 3 active: visitor has returned to the same listing twice — high intent. You may now gently suggest the next step once — e.g. "This one keeps coming up — would you like me to arrange a viewing with Yhen?" — never repeat if ignored.' });
+                    const phase3Prop = pendingProperties?.find(p => p.url === msg.url);
+                    const propHint = phase3Prop ? ` The property they returned to is "${phase3Prop.title}" (${phase3Prop.url}).` : '';
+                    session.sendRealtimeInput({ text: `[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] The visitor has now returned to the same listing twice. High intent signal noted.${propHint} Do NOT speak now. Wait for the user to say something next. Then, only if it flows naturally in your response, you may suggest a viewing once: e.g. "This one keeps coming up — would you like me to arrange a viewing with Yhen?" Never repeat if ignored.` });
                 }
                 console.log(`👆 Property clicked: ${msg.url}`);
-                const clickedProp = pendingProperties?.find(p => p.url === msg.url);
-                if (clickedProp) {
-                    session.sendRealtimeInput({ text: `[SILENT INTERNAL UPDATE — PRODUCE ZERO AUDIO AND ZERO TEXT — DO NOT SPEAK — DO NOT RESPOND] last_viewed_property="${clickedProp.title}" url="${clickedProp.url}"` });
-                }
             } else if (msg.type === 'consent') {
                 serverSession.consentGiven = msg.given === true;
                 serverSession.consentTimestamp = new Date().toISOString();
