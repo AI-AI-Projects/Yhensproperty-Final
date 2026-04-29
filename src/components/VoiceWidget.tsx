@@ -881,7 +881,7 @@ export const VoiceWidget: React.FC = () => {
           ...(isMobile
             ? { inset: 0 }
             : isModalExpanded
-              ? { top: 0, bottom: 0, right: 0, width: 'calc(100vw - 520px)' }
+              ? { top: '64px', bottom: 0, left: '606px', right: 0 }
               : { top: '84px', bottom: '24px', right: '60px', width: 'min(640px, calc(100vw - 660px))' }),
           background: '#0f0f10',
           borderRadius: isMobile ? 0 : '16px',
