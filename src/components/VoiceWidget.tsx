@@ -123,6 +123,7 @@ export const VoiceWidget: React.FC = () => {
   const [modalProperty, setModalProperty] = useState<PropertyDetail | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalPhotoIndex, setModalPhotoIndex] = useState(0);
+  const [whatsappDraft, setWhatsappDraft] = useState<string | null>(null);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
@@ -254,20 +255,7 @@ export const VoiceWidget: React.FC = () => {
       navigate(msg.path as string);
       if (window.innerWidth <= 768) setMinimized(true);
     } else if (msg.type === 'whatsapp') {
-      const text = encodeURIComponent(msg.message as string);
-      // Mark WhatsApp opened in session
-      const raw = localStorage.getItem('yhen_session');
-      if (raw) {
-        const session = JSON.parse(raw);
-        session.whatsappOpened = true;
-        session.lastActivity = new Date().toISOString();
-        localStorage.setItem('yhen_session', JSON.stringify(session));
-        // Send session to server immediately when WhatsApp fires
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({ type: 'sessionEnd', data: session }));
-        }
-      }
-      window.open(`https://wa.me/639467543767?text=${text}`, '_blank');
+      setWhatsappDraft(msg.message as string);
     }
   }, [stopAllAudio, playAudio]);
 
@@ -655,6 +643,85 @@ export const VoiceWidget: React.FC = () => {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill={textInput.trim() ? '#09090b' : '#52525b'}>
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                   </svg>
+                </button>
+              </div>
+            )}
+
+            {/* WhatsApp draft card */}
+            {whatsappDraft !== null && (
+              <div style={{
+                borderTop: '1px solid rgba(37,211,102,0.2)',
+                background: 'rgba(37,211,102,0.05)',
+                padding: '12px',
+                flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.124 1.527 5.855L0 24l6.337-1.493A11.954 11.954 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.006-1.369l-.358-.214-3.762.887.935-3.667-.233-.376A9.818 9.818 0 1 1 12 21.818z"/></svg>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#25D366' }}>Message draft</span>
+                  </div>
+                  <button
+                    onClick={() => setWhatsappDraft(null)}
+                    style={{ background: 'none', border: 'none', color: '#52525b', cursor: 'pointer', fontSize: '0.9rem', lineHeight: 1, padding: '2px 4px' }}
+                    title="Dismiss"
+                  >✕</button>
+                </div>
+                <textarea
+                  value={whatsappDraft}
+                  onChange={e => setWhatsappDraft(e.target.value)}
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(37,211,102,0.2)',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    fontSize: '0.78rem',
+                    color: '#f4f4f5',
+                    lineHeight: 1.5,
+                    resize: 'none',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    const url = `https://wa.me/639467543767?text=${encodeURIComponent(whatsappDraft)}`;
+                    window.open(url, '_blank');
+                    const raw = localStorage.getItem('yhen_session');
+                    if (raw) {
+                      const session = JSON.parse(raw);
+                      session.whatsappOpened = true;
+                      session.lastActivity = new Date().toISOString();
+                      localStorage.setItem('yhen_session', JSON.stringify(session));
+                      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                        wsRef.current.send(JSON.stringify({ type: 'sessionEnd', data: session }));
+                      }
+                    }
+                    setWhatsappDraft(null);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    background: '#25D366',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.124 1.527 5.855L0 24l6.337-1.493A11.954 11.954 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.006-1.369l-.358-.214-3.762.887.935-3.667-.233-.376A9.818 9.818 0 1 1 12 21.818z"/></svg>
+                  Send on WhatsApp
                 </button>
               </div>
             )}
