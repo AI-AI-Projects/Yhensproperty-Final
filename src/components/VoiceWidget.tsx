@@ -931,52 +931,38 @@ export const VoiceWidget: React.FC = () => {
           ) : modalProperty && (
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0' }}>
 
-              {/* Photos — grid in expanded mode, carousel in normal mode */}
+              {/* Photo carousel */}
               {modalProperty.images && modalProperty.images.length > 0 && (
-                isModalExpanded && modalProperty.images.length >= 2 ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '3px', flexShrink: 0, height: '300px', background: '#000' }}>
-                    {modalProperty.images.slice(0, 3).map((img, idx) => (
-                      <img
-                        key={idx}
-                        src={img}
-                        alt=""
-                        onClick={() => setModalPhotoIndex(idx)}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer', display: 'block' }}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ position: 'relative', background: '#111', flexShrink: 0, height: '240px' }}>
-                    <img
-                      src={modalProperty.images[modalPhotoIndex]}
-                      alt={modalProperty.title}
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                    />
-                    {modalProperty.images.length > 1 && (
-                      <>
-                        <button onClick={(e) => { e.stopPropagation(); setModalPhotoIndex(i => Math.max(0, i - 1)); }} style={{
-                          position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)',
-                          background: 'rgba(0,0,0,0.65)', border: 'none', color: '#fff', borderRadius: '50%',
-                          width: '34px', height: '34px', cursor: 'pointer', fontSize: '1.2rem',
-                          display: modalPhotoIndex === 0 ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>‹</button>
-                        <button onClick={(e) => { e.stopPropagation(); setModalPhotoIndex(i => Math.min(modalProperty.images.length - 1, i + 1)); }} style={{
-                          position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
-                          background: 'rgba(0,0,0,0.65)', border: 'none', color: '#fff', borderRadius: '50%',
-                          width: '34px', height: '34px', cursor: 'pointer', fontSize: '1.2rem',
-                          display: modalPhotoIndex === modalProperty.images.length - 1 ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>›</button>
-                        <div style={{ position: 'absolute', bottom: '8px', right: '10px', background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '99px' }}>
-                          {modalPhotoIndex + 1} / {modalProperty.images.length}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )
+                <div style={{ position: 'relative', background: '#111', flexShrink: 0, height: isModalExpanded ? '420px' : '240px' }}>
+                  <img
+                    src={modalProperty.images[modalPhotoIndex]}
+                    alt={modalProperty.title}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                  {modalProperty.images.length > 1 && (
+                    <>
+                      <button onClick={(e) => { e.stopPropagation(); setModalPhotoIndex(i => Math.max(0, i - 1)); }} style={{
+                        position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)',
+                        background: 'rgba(0,0,0,0.65)', border: 'none', color: '#fff', borderRadius: '50%',
+                        width: '34px', height: '34px', cursor: 'pointer', fontSize: '1.2rem',
+                        display: modalPhotoIndex === 0 ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>‹</button>
+                      <button onClick={(e) => { e.stopPropagation(); setModalPhotoIndex(i => Math.min(modalProperty.images.length - 1, i + 1)); }} style={{
+                        position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+                        background: 'rgba(0,0,0,0.65)', border: 'none', color: '#fff', borderRadius: '50%',
+                        width: '34px', height: '34px', cursor: 'pointer', fontSize: '1.2rem',
+                        display: modalPhotoIndex === modalProperty.images.length - 1 ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>›</button>
+                      <div style={{ position: 'absolute', bottom: '8px', right: '10px', background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '99px' }}>
+                        {modalPhotoIndex + 1} / {modalProperty.images.length}
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
 
-              {/* Thumbnail strip — normal mode only */}
-              {!isModalExpanded && modalProperty.images && modalProperty.images.length > 1 && (
+              {/* Thumbnail strip */}
+              {modalProperty.images && modalProperty.images.length > 1 && (
                 <div style={{ display: 'flex', gap: '4px', padding: '8px 16px', overflowX: 'auto', background: '#111', flexShrink: 0 }}>
                   {modalProperty.images.slice(0, 10).map((img, idx) => (
                     <img
@@ -985,7 +971,9 @@ export const VoiceWidget: React.FC = () => {
                       alt=""
                       onClick={(e) => { e.stopPropagation(); setModalPhotoIndex(idx); }}
                       style={{
-                        width: '52px', height: '40px', objectFit: 'cover', borderRadius: '4px',
+                        width: isModalExpanded ? '72px' : '52px',
+                        height: isModalExpanded ? '54px' : '40px',
+                        objectFit: 'cover', borderRadius: '4px',
                         cursor: 'pointer', flexShrink: 0,
                         opacity: modalPhotoIndex === idx ? 1 : 0.45,
                         border: modalPhotoIndex === idx ? '2px solid #0df259' : '2px solid transparent',
