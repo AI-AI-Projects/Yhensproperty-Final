@@ -123,6 +123,7 @@ export const VoiceWidget: React.FC = () => {
   const [modalProperty, setModalProperty] = useState<PropertyDetail | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalPhotoIndex, setModalPhotoIndex] = useState(0);
+  const [isModalExpanded, setIsModalExpanded] = useState(false);
   const [whatsappDraft, setWhatsappDraft] = useState<string | null>(null);
   const [viewportHeight, setViewportHeight] = useState<number>(window.innerHeight);
   const chatRef = useRef<HTMLDivElement>(null);
@@ -879,7 +880,9 @@ export const VoiceWidget: React.FC = () => {
           position: 'fixed',
           ...(isMobile
             ? { inset: 0 }
-            : { top: '84px', bottom: '24px', right: '60px', width: 'min(640px, calc(100vw - 660px))' }),
+            : isModalExpanded
+              ? { top: 0, bottom: 0, right: 0, width: 'calc(100vw - 520px)' }
+              : { top: '84px', bottom: '24px', right: '60px', width: 'min(640px, calc(100vw - 660px))' }),
           background: '#0f0f10',
           borderRadius: isMobile ? 0 : '16px',
           border: '1px solid rgba(255,255,255,0.12)',
@@ -895,11 +898,25 @@ export const VoiceWidget: React.FC = () => {
             padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0,
           }}>
             <span style={{ fontSize: '0.75rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Property Details</span>
-            <button onClick={() => { setModalProperty(null); setModalLoading(false); }} style={{
-              background: 'rgba(255,255,255,0.07)', border: 'none', color: '#a1a1aa', cursor: 'pointer',
-              borderRadius: '50%', width: '28px', height: '28px', fontSize: '1rem', lineHeight: 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>✕</button>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              {!isMobile && (
+                <button onClick={() => setIsModalExpanded(e => !e)} title={isModalExpanded ? 'Collapse' : 'Expand'} style={{
+                  background: 'rgba(255,255,255,0.07)', border: 'none', color: '#a1a1aa', cursor: 'pointer',
+                  borderRadius: '6px', width: '28px', height: '28px', fontSize: '0.85rem',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {isModalExpanded
+                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                  }
+                </button>
+              )}
+              <button onClick={() => { setModalProperty(null); setModalLoading(false); setIsModalExpanded(false); }} style={{
+                background: 'rgba(255,255,255,0.07)', border: 'none', color: '#a1a1aa', cursor: 'pointer',
+                borderRadius: '50%', width: '28px', height: '28px', fontSize: '1rem', lineHeight: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>✕</button>
+            </div>
           </div>
 
           {modalLoading ? (
