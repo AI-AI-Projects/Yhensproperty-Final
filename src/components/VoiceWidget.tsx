@@ -624,7 +624,7 @@ export const VoiceWidget: React.FC = () => {
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: '20px',
                     padding: '7px 12px',
-                    fontSize: '0.8rem',
+                    fontSize: '16px',
                     color: '#f4f4f5',
                     outline: 'none',
                   }}
