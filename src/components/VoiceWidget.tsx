@@ -485,12 +485,16 @@ export const VoiceWidget: React.FC = () => {
           70%  { box-shadow: 0 0 0 14px rgba(239,68,68,0);  }
           100% { box-shadow: 0 0 0 0   rgba(239,68,68,0);   }
         }
+        .yhen-props-scroll::-webkit-scrollbar { width: 4px; }
+        .yhen-props-scroll::-webkit-scrollbar-track { background: transparent; }
+        .yhen-props-scroll::-webkit-scrollbar-thumb { background: #0df259; border-radius: 2px; }
+        .yhen-props-scroll { scrollbar-width: thin; scrollbar-color: #0df259 transparent; }
       `}</style>
 
       <div style={{
         position: 'fixed',
         ...(isMobile && panelOpen
-          ? { top: `${vpTop}px`, left: 0, right: 0, height: `${vpHeight}px`, alignItems: 'stretch', background: '#0f0f11' }
+          ? { top: `${vpTop}px`, left: 0, right: 0, height: `${vpHeight}px`, alignItems: 'stretch', background: '#0f0f11', overflow: 'hidden' }
           : isMobile
             ? { bottom: '160px', right: '20px', alignItems: 'flex-end' }
             : { bottom: '24px', left: '24px', alignItems: 'flex-start' }),
@@ -760,7 +764,7 @@ export const VoiceWidget: React.FC = () => {
 
             {/* Property cards — hidden while keyboard is open */}
             {properties.length > 0 && !keyboardOpen && (
-              <div style={{
+              <div className="yhen-props-scroll" style={{
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 overflowY: 'auto',
                 flexShrink: 0,
