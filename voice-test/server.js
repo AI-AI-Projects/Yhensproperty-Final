@@ -736,6 +736,9 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                     session.sendRealtimeInput({ text: `[SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY] The visitor has now returned to the same listing twice. High intent signal noted.${propHint} Do NOT speak now. Wait for the user to say something next. Then, only if it flows naturally in your response, you may suggest a viewing once: e.g. "This one keeps coming up — would you like me to arrange a viewing with Yhen?" Never repeat if ignored.` });
                 }
                 console.log(`👆 Property clicked: ${msg.url}`);
+            } else if (msg.type === 'whatsappClick') {
+                serverSession.whatsappOpened = true;
+                console.log('💬 WhatsApp opened manually from property modal');
             } else if (msg.type === 'consent') {
                 serverSession.consentGiven = msg.given === true;
                 serverSession.consentTimestamp = new Date().toISOString();

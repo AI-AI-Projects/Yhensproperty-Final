@@ -1100,6 +1100,9 @@ export const VoiceWidget: React.FC = () => {
                     rel="noopener noreferrer"
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (wsRef.current?.readyState === WebSocket.OPEN) {
+                        wsRef.current.send(JSON.stringify({ type: 'whatsappClick' }));
+                      }
                       const raw = localStorage.getItem('yhen_session');
                       if (raw) {
                         const session = JSON.parse(raw);
