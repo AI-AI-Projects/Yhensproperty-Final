@@ -710,7 +710,6 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                 checkPhaseTransition();
                 session.sendRealtimeInput({ text: msg.data });
             } else if (msg.type === 'whatsappEnquiry') {
-                serverSession.whatsappOpened = true;
                 const { title, url } = msg;
                 session.sendRealtimeInput({ text: `[WHATSAPP_BUTTON_CLICK — INTERNAL INSTRUCTION — DO NOT READ ALOUD] The user clicked the WhatsApp button directly on a property listing. Property title: "${title}". Property URL: ${url}. SKIP property confirmation entirely — you already have it. Your FIRST spoken response must be ONLY: "I've already included the ${title} link in the message. What would you like to say — and can I grab your name, number, and email?" Nothing else. Do not ask to confirm the property. Do not ask any other questions first.` });
             } else if (msg.type === 'pageContext') {
