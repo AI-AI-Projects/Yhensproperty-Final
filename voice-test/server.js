@@ -389,12 +389,40 @@ const tools = [{
     }]
 }];
 
+// Global session registry — prevents zombie sessions causing 409 Conflicts
+const activeSessions = new Map();
+
+async function connectWithRetry(config, retries = 2, delayMs = 2500) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            return await ai.live.connect(config);
+        } catch (err) {
+            const is409 = err?.status === 409 || err?.message?.includes('409') || err?.message?.includes('Conflict');
+            if (is409 && attempt < retries) {
+                console.warn(`⚠️ 409 Conflict on attempt ${attempt} — waiting ${delayMs}ms before retry...`);
+                await new Promise(r => setTimeout(r, delayMs));
+            } else {
+                throw err;
+            }
+        }
+    }
+}
+
 wss.on('connection', async (ws) => {
     console.log('🟢 Browser connected to local server.');
     let session;
 
+    // Kill any existing session for this client before creating a new one
+    if (activeSessions.has(ws)) {
+        const old = activeSessions.get(ws);
+        try { old.close(); } catch (_) {}
+        activeSessions.delete(ws);
+        console.log('🧹 Cleared existing session before reconnect');
+        await new Promise(r => setTimeout(r, 1000));
+    }
+
     try {
-        session = await ai.live.connect({
+        session = await connectWithRetry({
             model: 'gemini-3.1-flash-live-preview',
             config: {
                 systemInstruction: {
@@ -487,6 +515,7 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                 tools: tools
             },
             callbacks: {
+
                 onmessage: async (message) => {
                     if (message.serverContent) {
                         if (message.serverContent.modelTurn) {
@@ -669,9 +698,14 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
             clearTimeout(sessionTimer);
             clearTimeout(sessionWarningTimer);
             console.log(`🔴 Session closed: ${reason}`);
-            if (session) session.close();
+            activeSessions.delete(ws);
+            if (session) { try { session.close(); } catch (_) {} }
             if (ws.readyState === ws.OPEN) ws.close();
         };
+
+        // Register confirmed live session — only after successful connect
+        activeSessions.set(ws, session);
+        console.log(`✅ Session registered (active: ${activeSessions.size})`);
 
         const sendNotification = (text) => {
             if (ws.readyState === ws.OPEN) {
