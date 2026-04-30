@@ -1098,7 +1098,16 @@ export const VoiceWidget: React.FC = () => {
                     href={`https://wa.me/639467543767?text=${encodeURIComponent(`Hi Yhen, I'm interested in this property: ${modalProperty.title} — ${modalProperty.url}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const raw = localStorage.getItem('yhen_session');
+                      if (raw) {
+                        const session = JSON.parse(raw);
+                        session.whatsappOpened = true;
+                        session.lastActivity = new Date().toISOString();
+                        localStorage.setItem('yhen_session', JSON.stringify(session));
+                      }
+                    }}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                       background: '#25D366', color: '#fff', borderRadius: '12px', padding: '12px',
