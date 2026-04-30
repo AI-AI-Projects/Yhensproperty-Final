@@ -498,7 +498,7 @@ export const VoiceWidget: React.FC = () => {
       <div style={{
         position: 'fixed',
         ...(isMobile && panelOpen
-          ? { top: 0, left: 0, right: 0, bottom: 0, alignItems: 'stretch', background: '#0f0f11', overflow: 'hidden' }
+          ? { top: `${vpTop}px`, left: 0, right: 0, height: `${vpHeight}px`, alignItems: 'stretch', background: '#0f0f11', overflow: 'hidden' }
           : isMobile
             ? { bottom: '160px', right: '20px', alignItems: 'flex-end' }
             : { bottom: '24px', left: '24px', alignItems: 'flex-start' }),
