@@ -654,6 +654,7 @@ export const VoiceWidget: React.FC = () => {
                       'Show you listings with photos, stats and pricing right here in the chat',
                       'Answer questions about buying or renting in the Philippines',
                       'Help you write a WhatsApp message to enquire about any listing',
+                      'Speak to me in any language — Filipino, Arabic, Español, 中文, Français, etc.',
                     ].map((item, i) => (
                       <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                         <span style={{ color: '#0df259', fontWeight: 700, flexShrink: 0, fontSize: '0.75rem', marginTop: '2px' }}>→</span>
