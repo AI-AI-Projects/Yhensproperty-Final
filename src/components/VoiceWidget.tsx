@@ -125,7 +125,9 @@ export const VoiceWidget: React.FC = () => {
   const [modalPhotoIndex, setModalPhotoIndex] = useState(0);
   const [isModalExpanded, setIsModalExpanded] = useState(false);
   const [whatsappDraft, setWhatsappDraft] = useState<string | null>(null);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [vpTop, setVpTop] = useState(0);
+  const [vpHeight, setVpHeight] = useState(window.innerHeight);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -138,14 +140,17 @@ export const VoiceWidget: React.FC = () => {
     const vv = window.visualViewport;
     if (!vv) return;
     const update = () => {
-      const kh = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setKeyboardHeight(kh);
-      if (kh > 0 && chatRef.current) {
-        chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      setVpTop(vv.offsetTop);
+      setVpHeight(vv.height);
+      const kbOpen = vv.height < window.screen.height * 0.75;
+      setKeyboardOpen(kbOpen);
+      if (kbOpen && chatRef.current) {
+        chatRef.current.scrollTop = 0;
       }
     };
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);
+    update();
     return () => {
       vv.removeEventListener('resize', update);
       vv.removeEventListener('scroll', update);
@@ -485,7 +490,7 @@ export const VoiceWidget: React.FC = () => {
       <div style={{
         position: 'fixed',
         ...(isMobile && panelOpen
-          ? { inset: 0, alignItems: 'stretch', background: '#0f0f11' }
+          ? { top: `${vpTop}px`, left: 0, right: 0, height: `${vpHeight}px`, alignItems: 'stretch', background: '#0f0f11' }
           : isMobile
             ? { bottom: '160px', right: '20px', alignItems: 'flex-end' }
             : { bottom: '24px', left: '24px', alignItems: 'flex-start' }),
@@ -505,8 +510,8 @@ export const VoiceWidget: React.FC = () => {
             border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)',
             borderRadius: isMobile ? '0px' : '18px',
             width: isMobile ? '100%' : '560px',
-            height: isMobile ? `calc(100% - ${keyboardHeight}px)` : 'auto',
-            maxHeight: isMobile ? `calc(100% - ${keyboardHeight}px)` : 'calc(100vh - 150px)',
+            height: isMobile ? '100%' : 'auto',
+            maxHeight: isMobile ? '100%' : 'calc(100vh - 150px)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -754,7 +759,7 @@ export const VoiceWidget: React.FC = () => {
             )}
 
             {/* Property cards — hidden while keyboard is open */}
-            {properties.length > 0 && keyboardHeight < 100 && (
+            {properties.length > 0 && !keyboardOpen && (
               <div style={{
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 overflowY: 'auto',
