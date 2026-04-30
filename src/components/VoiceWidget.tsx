@@ -485,7 +485,7 @@ export const VoiceWidget: React.FC = () => {
       <div style={{
         position: 'fixed',
         ...(isMobile && panelOpen
-          ? { top: 0, left: 0, right: 0, height: `calc(100vh - ${keyboardHeight}px)`, alignItems: 'stretch' }
+          ? { inset: 0, alignItems: 'stretch', background: '#0f0f11' }
           : isMobile
             ? { bottom: '160px', right: '20px', alignItems: 'flex-end' }
             : { bottom: '24px', left: '24px', alignItems: 'flex-start' }),
@@ -505,8 +505,8 @@ export const VoiceWidget: React.FC = () => {
             border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)',
             borderRadius: isMobile ? '0px' : '18px',
             width: isMobile ? '100%' : '560px',
-            height: isMobile ? '100%' : 'auto',
-            maxHeight: isMobile ? '100%' : 'calc(100vh - 150px)',
+            height: isMobile ? `calc(100% - ${keyboardHeight}px)` : 'auto',
+            maxHeight: isMobile ? `calc(100% - ${keyboardHeight}px)` : 'calc(100vh - 150px)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -753,8 +753,8 @@ export const VoiceWidget: React.FC = () => {
               </div>
             )}
 
-            {/* Property cards */}
-            {properties.length > 0 && (
+            {/* Property cards — hidden while keyboard is open */}
+            {properties.length > 0 && keyboardHeight < 100 && (
               <div style={{
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 overflowY: 'auto',
