@@ -987,7 +987,7 @@ export const VoiceWidget: React.FC = () => {
                   <img
                     src={modalProperty.images[modalPhotoIndex]}
                     alt={modalProperty.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                   {modalProperty.images.length > 1 && (
                     <>
