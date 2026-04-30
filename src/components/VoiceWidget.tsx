@@ -491,6 +491,10 @@ export const VoiceWidget: React.FC = () => {
         .yhen-props-scroll { scrollbar-width: thin; scrollbar-color: #0df259 transparent; }
       `}</style>
 
+      {isMobile && panelOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: '#0f0f11', zIndex: 9998, pointerEvents: 'none' }} />
+      )}
+
       <div style={{
         position: 'fixed',
         ...(isMobile && panelOpen
@@ -764,10 +768,17 @@ export const VoiceWidget: React.FC = () => {
 
             {/* Property cards — hidden while keyboard is open */}
             {properties.length > 0 && !keyboardOpen && (
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+              {properties.length > 2 && (
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0, height: '48px', zIndex: 2, pointerEvents: 'none',
+                  background: 'linear-gradient(to bottom, transparent, rgba(15,15,17,0.95))',
+                  borderRadius: '0 0 4px 4px',
+                }} />
+              )}
               <div className="yhen-props-scroll" style={{
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 overflowY: 'auto',
-                flexShrink: 0,
                 maxHeight: '360px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -848,6 +859,7 @@ export const VoiceWidget: React.FC = () => {
                     >✕</button>
                   </div>
                 ))}
+              </div>
               </div>
             )}
           </div>
