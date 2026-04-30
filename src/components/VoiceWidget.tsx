@@ -498,7 +498,7 @@ export const VoiceWidget: React.FC = () => {
       <div style={{
         position: 'fixed',
         ...(isMobile && panelOpen
-          ? { top: `${vpTop}px`, left: 0, right: 0, height: `${vpHeight}px`, alignItems: 'stretch', background: '#0f0f11', overflow: 'hidden' }
+          ? { top: 0, left: 0, right: 0, bottom: 0, alignItems: 'stretch', background: '#0f0f11', overflow: 'hidden' }
           : isMobile
             ? { bottom: '160px', right: '20px', alignItems: 'flex-end' }
             : { bottom: '24px', left: '24px', alignItems: 'flex-start' }),
@@ -513,8 +513,8 @@ export const VoiceWidget: React.FC = () => {
         {/* Expanded panel */}
         {panelOpen && (
           <div style={{
-            background: 'rgba(15,15,17,0.96)',
-            backdropFilter: 'blur(16px)',
+            background: isMobile ? '#0f0f11' : 'rgba(15,15,17,0.96)',
+            backdropFilter: isMobile ? 'none' : 'blur(16px)',
             border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)',
             borderRadius: isMobile ? '0px' : '18px',
             width: isMobile ? '100%' : '560px',
