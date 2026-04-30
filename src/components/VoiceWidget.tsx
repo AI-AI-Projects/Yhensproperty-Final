@@ -1098,8 +1098,7 @@ export const VoiceWidget: React.FC = () => {
                     onClick={(e) => {
                       e.stopPropagation();
                       if (wsRef.current?.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(JSON.stringify({ type: 'text', data: `I'd like to enquire via WhatsApp about the ${modalProperty.title}` }));
-                        setModalProperty(null);
+                        wsRef.current.send(JSON.stringify({ type: 'text', data: `I'd like to send a WhatsApp enquiry. The property is: ${modalProperty.title} — ${modalProperty.url}` }));
                       }
                     }}
                     style={{
