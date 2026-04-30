@@ -126,6 +126,7 @@ export const VoiceWidget: React.FC = () => {
   const [modalPhotoIndex, setModalPhotoIndex] = useState(0);
   const [isModalExpanded, setIsModalExpanded] = useState(false);
   const [whatsappDraft, setWhatsappDraft] = useState<string | null>(null);
+  const [showIntroCard, setShowIntroCard] = useState(false);
   const [vpTop, setVpTop] = useState(0);
   const [vpHeight, setVpHeight] = useState(window.innerHeight);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -261,10 +262,12 @@ export const VoiceWidget: React.FC = () => {
       const isSystemMsg = ['[SYSTEM', 'SYSTEM CONTEXT', 'CONTEXT UPDATE', 'VISITOR MEMORY',
         'PROPERTY DETAILS', 'INTERNAL ONLY', 'INTERNALONLY', 'DO NOT SPEAK', 'DONOTSPEAK', 'DONOT'].some(p => txt.includes(p));
       if (isSystemMsg) return;
+      setShowIntroCard(false);
       yhenBufferRef.current += txt;
       setSpeaker('yhen');
       setSpeechText(yhenBufferRef.current);
     } else if (msg.type === 'userText') {
+      setShowIntroCard(false);
       setSpeaker('user');
       setSpeechText(msg.data as string);
     } else if (msg.type === 'notification') {
@@ -333,6 +336,7 @@ export const VoiceWidget: React.FC = () => {
 
       ws.onopen = () => {
         setStatus('listening');
+        setShowIntroCard(true);
         // Send consent status to server
         const rawConsent = localStorage.getItem('yhen_consent');
         if (rawConsent) {
@@ -616,7 +620,7 @@ export const VoiceWidget: React.FC = () => {
                 </div>
               </div>
             ) : (
-            /* Speech text */
+            /* Speech text / intro card */
             <div ref={chatRef} style={{
               padding: '14px 16px',
               flex: 1,
@@ -624,8 +628,6 @@ export const VoiceWidget: React.FC = () => {
               overflowY: 'auto',
               fontSize: '0.875rem',
               lineHeight: 1.6,
-              color: speechText ? '#f4f4f5' : '#52525b',
-              fontStyle: speechText ? 'normal' : 'italic',
             }}>
               {speechText ? (
                 <>
@@ -637,10 +639,32 @@ export const VoiceWidget: React.FC = () => {
                     color: speaker === 'yhen' ? '#0df259' : '#71717a',
                     marginBottom: '4px',
                   }}>{speaker === 'yhen' ? 'Yhen' : 'You'}</div>
-                  <div>{speechText}</div>
+                  <div style={{ color: '#f4f4f5' }}>{speechText}</div>
                 </>
+              ) : showIntroCard ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ fontSize: '0.82rem', color: '#f4f4f5', fontWeight: 600, lineHeight: 1.4 }}>
+                    Hi, I'm Yhen — just start talking, I'm listening.
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {[
+                      'Search properties by budget, location, bedrooms — or go deeper: "near an international school", "sea view under ₱10M"',
+                      'Show you listings with photos, stats and pricing right here in the chat',
+                      'Answer questions about buying or renting in the Philippines',
+                      'Help you write a WhatsApp message to enquire about any listing',
+                    ].map((item, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                        <span style={{ color: '#0df259', fontWeight: 700, flexShrink: 0, fontSize: '0.75rem', marginTop: '2px' }}>→</span>
+                        <span style={{ fontSize: '0.78rem', color: '#a1a1aa', lineHeight: 1.5 }}>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: '#52525b', marginTop: '2px' }}>
+                    Tap the mic icon to mute anytime you need a break.
+                  </div>
+                </div>
               ) : (
-                'Ask me anything about our services...'
+                <span style={{ color: '#52525b', fontStyle: 'italic', fontSize: '0.875rem' }}>Ask me anything about our services...</span>
               )}
             </div>
             )}
@@ -659,7 +683,7 @@ export const VoiceWidget: React.FC = () => {
                   value={textInput}
                   onChange={e => setTextInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && sendTextMessage()}
-                  placeholder="Type a message..."
+                  placeholder="Speak to me — or type here"
                   style={{
                     flex: 1,
                     background: 'rgba(255,255,255,0.06)',
