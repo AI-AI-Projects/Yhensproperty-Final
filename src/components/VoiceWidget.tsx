@@ -853,10 +853,12 @@ export const VoiceWidget: React.FC = () => {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f4f4f5', lineHeight: 1.3, marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
                         <div style={{ fontSize: '0.78rem', color: '#0df259', fontWeight: 600, marginBottom: '2px' }}>{p.price}</div>
-                        <div style={{ fontSize: '0.7rem', color: '#71717a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {[p.beds && Number(p.beds) > 0 ? `${p.beds} bed` : null, p.location].filter(Boolean).join(' · ')}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#71717a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                            {[p.beds && Number(p.beds) > 0 ? `${p.beds} bed` : null, p.location].filter(Boolean).join(' · ')}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#0df259', fontWeight: 700, flexShrink: 0 }}>View details →</div>
                         </div>
-                        <div style={{ fontSize: '0.68rem', color: '#0df259', marginTop: '4px', fontWeight: 500 }}>View details →</div>
                       </div>
                     </div>
                     <button
