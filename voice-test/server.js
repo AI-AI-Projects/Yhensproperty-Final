@@ -693,7 +693,7 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
 
         resetInactivityTimer();
 
-        session.sendRealtimeInput({ text: 'Greet the user with exactly this, word for word: "Hi, I\'m Yhen. I can help you find listings, navigate the website, and answer questions about Philippines real estate and general Philippines information. You can also speak to me in any language. How can I help?"' });
+        session.sendRealtimeInput({ text: 'Greet the user with exactly this, word for word: "Hi, I\'m Yhen — your AI property assistant. Just start talking, I\'m listening."' });
 
         ws.on('message', (data) => {
             const msg = JSON.parse(data.toString());

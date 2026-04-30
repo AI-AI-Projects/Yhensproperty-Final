@@ -262,7 +262,6 @@ export const VoiceWidget: React.FC = () => {
       const isSystemMsg = ['[SYSTEM', 'SYSTEM CONTEXT', 'CONTEXT UPDATE', 'VISITOR MEMORY',
         'PROPERTY DETAILS', 'INTERNAL ONLY', 'INTERNALONLY', 'DO NOT SPEAK', 'DONOTSPEAK', 'DONOT'].some(p => txt.includes(p));
       if (isSystemMsg) return;
-      setShowIntroCard(false);
       yhenBufferRef.current += txt;
       setSpeaker('yhen');
       setSpeechText(yhenBufferRef.current);
@@ -629,20 +628,8 @@ export const VoiceWidget: React.FC = () => {
               fontSize: '0.875rem',
               lineHeight: 1.6,
             }}>
-              {speechText ? (
-                <>
-                  <div style={{
-                    fontSize: '0.6rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    color: speaker === 'yhen' ? '#0df259' : '#71717a',
-                    marginBottom: '4px',
-                  }}>{speaker === 'yhen' ? 'Yhen' : 'You'}</div>
-                  <div style={{ color: '#f4f4f5' }}>{speechText}</div>
-                </>
-              ) : showIntroCard ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {showIntroCard && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: speechText ? '14px' : '0', paddingBottom: speechText ? '14px' : '0', borderBottom: speechText ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
                   <div style={{ fontSize: '0.82rem', color: '#f4f4f5', fontWeight: 600, lineHeight: 1.4 }}>
                     Hi, I'm Yhen — just start talking, I'm listening.
                   </div>
@@ -659,13 +646,24 @@ export const VoiceWidget: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: '#52525b', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#52525b' }}>
                     Tap the mic icon to mute anytime you need a break.
                   </div>
                 </div>
-              ) : (
-                <span style={{ color: '#52525b', fontStyle: 'italic', fontSize: '0.875rem' }}>Ask me anything about our services...</span>
               )}
+              {speechText ? (
+                <>
+                  <div style={{
+                    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: speaker === 'yhen' ? '#0df259' : '#71717a',
+                    marginBottom: '4px',
+                  }}>{speaker === 'yhen' ? 'Yhen' : 'You'}</div>
+                  <div style={{ color: '#f4f4f5' }}>{speechText}</div>
+                </>
+              ) : !showIntroCard ? (
+                <span style={{ color: '#52525b', fontStyle: 'italic', fontSize: '0.875rem' }}>Ask me anything about our services...</span>
+              ) : null}
             </div>
             )}
 
