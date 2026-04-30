@@ -1097,8 +1097,14 @@ export const VoiceWidget: React.FC = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (wsRef.current?.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(JSON.stringify({ type: 'whatsappEnquiry', title: modalProperty.title, url: modalProperty.url }));
+                      const wsOpen = wsRef.current?.readyState === WebSocket.OPEN;
+                      console.log('[WhatsApp btn] WS state:', wsRef.current?.readyState, 'open:', wsOpen);
+                      if (wsOpen) {
+                        wsRef.current!.send(JSON.stringify({ type: 'whatsappEnquiry', title: modalProperty.title, url: modalProperty.url }));
+                        setModalProperty(null);
+                      } else {
+                        // WS not active — fall back to direct WhatsApp link
+                        window.open(`https://wa.me/639467543767?text=${encodeURIComponent(`Hi Yhen, I'm interested in this property: ${modalProperty.title} — ${modalProperty.url}`)}`, '_blank');
                       }
                     }}
                     style={{
