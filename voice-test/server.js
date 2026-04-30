@@ -743,12 +743,13 @@ RESPONSE LENGTH: Keep answers conversational and concise. For property searches,
                 serverSession.consentGiven = msg.given === true;
                 serverSession.consentTimestamp = new Date().toISOString();
             } else if (msg.type === 'sessionEnd') {
-                // Capture contact details from widget if available
+                // Capture contact details and flags from widget localStorage
                 const d = msg.data;
                 if (d) {
                     if (d.name) serverSession.name = d.name;
                     if (d.phone) serverSession.phone = d.phone;
                     if (d.email) serverSession.email = d.email;
+                    if (d.whatsappOpened) serverSession.whatsappOpened = true;
                 }
             }
         });
