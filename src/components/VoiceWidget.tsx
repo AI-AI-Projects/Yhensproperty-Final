@@ -1010,23 +1010,76 @@ export const VoiceWidget: React.FC = () => {
               <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: isModalExpanded ? '720px' : '100%', margin: isModalExpanded ? '0 auto' : undefined, width: '100%', boxSizing: 'border-box' }}>
 
                 {/* Title + listing badge */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f4f4f5', lineHeight: 1.3, flex: 1 }}>{modalProperty.title}</div>
-                    <span style={{
-                      flexShrink: 0, fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em',
-                      textTransform: 'uppercase', padding: '3px 8px', borderRadius: '99px',
-                      background: modalProperty.listing_type === 'sale' ? 'rgba(13,242,89,0.1)' : 'rgba(96,165,250,0.1)',
-                      color: modalProperty.listing_type === 'sale' ? '#0df259' : '#60a5fa',
-                      border: `1px solid ${modalProperty.listing_type === 'sale' ? 'rgba(13,242,89,0.25)' : 'rgba(96,165,250,0.25)'}`,
-                    }}>
-                      {modalProperty.listing_type === 'sale' ? 'For Sale' : 'For Rent'}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0df259' }}>₱{Number(modalProperty.price).toLocaleString()}</div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f4f4f5', lineHeight: 1.3, flex: 1 }}>{modalProperty.title}</div>
+                  <span style={{
+                    flexShrink: 0, fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em',
+                    textTransform: 'uppercase', padding: '3px 8px', borderRadius: '99px',
+                    background: modalProperty.listing_type === 'sale' ? 'rgba(13,242,89,0.1)' : 'rgba(96,165,250,0.1)',
+                    color: modalProperty.listing_type === 'sale' ? '#0df259' : '#60a5fa',
+                    border: `1px solid ${modalProperty.listing_type === 'sale' ? 'rgba(13,242,89,0.25)' : 'rgba(96,165,250,0.25)'}`,
+                  }}>
+                    {modalProperty.listing_type === 'sale' ? 'For Sale' : 'For Rent'}
+                  </span>
                 </div>
 
-                {/* Action buttons — below price, above specs */}
+                {/* Price + stats on same row */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0',
+                  background: 'rgba(255,255,255,0.03)', borderRadius: '12px',
+                  border: '1px solid rgba(255,255,255,0.07)', padding: '12px 16px',
+                }}>
+                  {/* Price */}
+                  <div style={{ flexShrink: 0, paddingRight: '16px', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: '4px' }}>Listing Price</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0df259', whiteSpace: 'nowrap' }}>₱{Number(modalProperty.price).toLocaleString()}</div>
+                  </div>
+                  {/* Stats */}
+                  <div style={{ display: 'flex', gap: '0', flex: 1, justifyContent: 'space-around', paddingLeft: '8px', flexWrap: 'wrap' }}>
+                    {modalProperty.beds > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 8px' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9V6a2 2 0 012-2h16a2 2 0 012 2v3"/><path d="M2 11v5a2 2 0 002 2h16a2 2 0 002-2v-5"/><path d="M2 11h20"/><path d="M6 11V9a2 2 0 012-2h8a2 2 0 012 2v2"/></svg>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5' }}>{modalProperty.beds}</span>
+                        <span style={{ fontSize: '0.6rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Beds</span>
+                      </div>
+                    )}
+                    {modalProperty.baths > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 8px' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6 6.5 3.5a1.5 1.5 0 000-1v0a1.5 1.5 0 00-1.5 1.5v3"/><path d="M4 10v10"/><path d="M20 10v10"/><path d="M4 19a2 2 0 002 2h12a2 2 0 002-2v-1H4v1z"/><path d="M3 10h18"/></svg>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5' }}>{modalProperty.baths}</span>
+                        <span style={{ fontSize: '0.6rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Baths</span>
+                      </div>
+                    )}
+                    {modalProperty.sqft != null && modalProperty.sqft > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 8px' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5' }}>{modalProperty.sqft}</span>
+                        <span style={{ fontSize: '0.6rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sqm</span>
+                      </div>
+                    )}
+                    {modalProperty.lot_area != null && modalProperty.lot_area > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 8px' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l9-9 9 9"/><path d="M3 21V11l9-9 9 9v10"/></svg>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5' }}>{modalProperty.lot_area}</span>
+                        <span style={{ fontSize: '0.6rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lot sqm</span>
+                      </div>
+                    )}
+                    {modalProperty.floor != null && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 8px' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M3 7l9-4 9 4"/><path d="M3 14l9-4 9 4"/><path d="M3 21V7"/><path d="M21 21V7"/></svg>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5' }}>{modalProperty.floor}</span>
+                        <span style={{ fontSize: '0.6rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Floor</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 8px' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5', textTransform: 'capitalize' }}>{modalProperty.type}</span>
+                      <span style={{ fontSize: '0.6rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <button
                     onClick={(e) => {
@@ -1071,50 +1124,6 @@ export const VoiceWidget: React.FC = () => {
                         textDecoration: 'none', fontWeight: 600, fontSize: '0.82rem',
                       }}
                     >View full listing ↗</a>
-                  </div>
-                </div>
-
-                {/* Key stats row */}
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  {modalProperty.beds > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '48px' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9V6a2 2 0 012-2h16a2 2 0 012 2v3"/><path d="M2 11v5a2 2 0 002 2h16a2 2 0 002-2v-5"/><path d="M2 11h20"/><path d="M6 11V9a2 2 0 012-2h8a2 2 0 012 2v2"/></svg>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5' }}>{modalProperty.beds}</span>
-                      <span style={{ fontSize: '0.65rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bed{modalProperty.beds !== 1 ? 's' : ''}</span>
-                    </div>
-                  )}
-                  {modalProperty.baths > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '48px' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6 6.5 3.5a1.5 1.5 0 000-1v0a1.5 1.5 0 00-1.5 1.5v3"/><path d="M4 10v10"/><path d="M20 10v10"/><path d="M4 19a2 2 0 002 2h12a2 2 0 002-2v-1H4v1z"/><path d="M3 10h18"/></svg>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5' }}>{modalProperty.baths}</span>
-                      <span style={{ fontSize: '0.65rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bath{modalProperty.baths !== 1 ? 's' : ''}</span>
-                    </div>
-                  )}
-                  {modalProperty.sqft != null && modalProperty.sqft > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '48px' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5' }}>{modalProperty.sqft}</span>
-                      <span style={{ fontSize: '0.65rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sqm</span>
-                    </div>
-                  )}
-                  {modalProperty.lot_area != null && modalProperty.lot_area > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '48px' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l9-9 9 9"/><path d="M3 21V11l9-9 9 9v10"/></svg>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5' }}>{modalProperty.lot_area}</span>
-                      <span style={{ fontSize: '0.65rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lot sqm</span>
-                    </div>
-                  )}
-                  {modalProperty.floor != null && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '48px' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M3 7l9-4 9 4"/><path d="M3 14l9-4 9 4"/><path d="M3 21V7"/><path d="M21 21V7"/></svg>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5' }}>{modalProperty.floor}</span>
-                      <span style={{ fontSize: '0.65rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Floor</span>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '48px' }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0df259" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f4f4f5', textTransform: 'capitalize' }}>{modalProperty.type}</span>
-                    <span style={{ fontSize: '0.65rem', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</span>
                   </div>
                 </div>
 
