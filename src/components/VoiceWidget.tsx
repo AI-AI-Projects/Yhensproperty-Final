@@ -628,11 +628,26 @@ export const VoiceWidget: React.FC = () => {
               fontSize: '0.875rem',
               lineHeight: 1.6,
             }}>
+              {speechText ? (
+                <>
+                  <div style={{
+                    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: speaker === 'yhen' ? '#0df259' : '#71717a',
+                    marginBottom: '4px',
+                  }}>{speaker === 'yhen' ? 'Yhen' : 'You'}</div>
+                  <div style={{ color: '#f4f4f5', marginBottom: showIntroCard ? '14px' : '0' }}>{speechText}</div>
+                </>
+              ) : !showIntroCard ? (
+                <span style={{ color: '#52525b', fontStyle: 'italic', fontSize: '0.875rem' }}>Ask me anything about our services...</span>
+              ) : null}
               {showIntroCard && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: speechText ? '14px' : '0', paddingBottom: speechText ? '14px' : '0', borderBottom: speechText ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-                  <div style={{ fontSize: '0.82rem', color: '#f4f4f5', fontWeight: 600, lineHeight: 1.4 }}>
-                    Hi, I'm Yhen — just start talking, I'm listening.
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: speechText ? '14px' : '0', borderTop: speechText ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                  {!speechText && (
+                    <div style={{ fontSize: '0.82rem', color: '#f4f4f5', fontWeight: 600, lineHeight: 1.4 }}>
+                      Hi, I'm Yhen — just start talking, I'm listening.
+                    </div>
+                  )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {[
                       'Search properties by budget, location, bedrooms — or go deeper: "near an international school", "sea view under ₱10M"',
@@ -646,24 +661,11 @@ export const VoiceWidget: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: '#52525b' }}>
-                    Tap the mic icon to mute anytime you need a break.
+                  <div style={{ fontSize: '0.75rem', color: '#0df259', fontWeight: 500 }}>
+                    🎤 Tap the mic icon top-right to mute when you need a break.
                   </div>
                 </div>
               )}
-              {speechText ? (
-                <>
-                  <div style={{
-                    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    color: speaker === 'yhen' ? '#0df259' : '#71717a',
-                    marginBottom: '4px',
-                  }}>{speaker === 'yhen' ? 'Yhen' : 'You'}</div>
-                  <div style={{ color: '#f4f4f5' }}>{speechText}</div>
-                </>
-              ) : !showIntroCard ? (
-                <span style={{ color: '#52525b', fontStyle: 'italic', fontSize: '0.875rem' }}>Ask me anything about our services...</span>
-              ) : null}
             </div>
             )}
 
