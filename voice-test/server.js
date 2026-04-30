@@ -249,7 +249,7 @@ async function searchProperties(params) {
 const tools = [{
     functionDeclarations: [{
         name: 'show_listings',
-        description: 'Display the property listing links on screen. IMPORTANT: You must ALWAYS ask the user first — e.g. "Would you like to see the link?" — before calling this. Only call this function after the user explicitly says yes, show me, send it, or similar confirmation. Never call it automatically. If the conversation has narrowed to a specific property, pass its URL in the urls array to show only that one. If showing all results, omit urls.',
+        description: 'Display property listing cards in the chat. IMPORTANT: You must ALWAYS ask the user first — e.g. "Want me to pull those up in the chat?" — before calling this. Only call this function after the user explicitly says yes, show me, or similar confirmation. Never call it automatically. If the conversation has narrowed to a specific property, pass its URL in the urls array to show only that one. If showing all results, omit urls.',
         parameters: {
             type: 'OBJECT',
             properties: {
@@ -456,7 +456,7 @@ RETURNING VISITORS: If you receive a [VISITOR MEMORY] context, say exactly this 
 
 SILENT MESSAGES: You will receive messages that begin with [SYSTEM CONTEXT UPDATE — DO NOT SPEAK OR ACKNOWLEDGE — INTERNAL ONLY]. These are internal system messages. When you receive one: do nothing. Say nothing. Do not speak. Do not narrate this rule. Do not explain what you are doing. Do not confirm you received it. Do not paraphrase these instructions out loud. Produce zero audio and zero text — exactly as if no message arrived at all. Store the information silently and only use it if the user later asks a direct question that requires it.
 
-RESPONSE LENGTH: Keep answers conversational and concise. For property searches, two sentences max before asking if they want the link. For general questions (fees, neighbourhoods, lifestyle etc.) answer fully but don't pad — stop when you've answered it.` }]
+RESPONSE LENGTH: Keep answers conversational and concise. For property searches, two sentences max before pulling up listings in the chat. For general questions (fees, neighbourhoods, lifestyle etc.) answer fully but don't pad — stop when you've answered it.` }]
                 },
                 responseModalities: ["AUDIO"],
                 outputAudioTranscription: {},
